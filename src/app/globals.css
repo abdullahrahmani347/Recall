@@ -1,0 +1,318 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   Recall — Original design tokens (see §2.2 of product brief)
+   These are NOT derived from any reference; do not reuse hex
+   values from external design systems.
+   ============================================================ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-space-grotesk);
+  --font-mono: var(--font-mono);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Recall brand layer */
+  --color-canvas: var(--canvas);
+  --color-void: var(--void);
+  --color-card-surface: var(--card-surface);
+  --color-border-hairline: var(--border-hairline);
+  --color-text-muted: var(--text-muted);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-primary: var(--text-primary);
+  --color-accent-brand: var(--accent-brand);
+  --color-accent-warm: var(--accent-warm);
+  --color-canvas-light: var(--canvas-light);
+  --color-linen-light: var(--linen-light);
+
+  /* Semantic grading scale (review screen only — fixed, never rebrand) */
+  --color-grade-again: var(--grade-again);
+  --color-grade-hard: var(--grade-hard);
+  --color-grade-good: var(--grade-good);
+  --color-grade-easy: var(--grade-easy);
+
+  --radius-sm: 8px;
+  --radius-md: 12px; /* buttons: 12px, not full pill */
+  --radius-lg: 16px; /* cards */
+  --radius-xl: 24px; /* modals/sheets */
+}
+
+/* Dark mode is the default canvas for Recall */
+:root {
+  --radius: 12px;
+
+  --background: #14161A; /* canvas */
+  --foreground: #F2F3F5; /* text-primary */
+  --card: #1C1F24; /* card-surface */
+  --card-foreground: #F2F3F5;
+  --popover: #1C1F24;
+  --popover-foreground: #F2F3F5;
+  --primary: #34E7A8; /* accent-brand */
+  --primary-foreground: #0A0B0D;
+  --secondary: #1C1F24;
+  --secondary-foreground: #B4B7BD;
+  --muted: #1C1F24;
+  --muted-foreground: #8A8D94; /* text-muted */
+  --accent: #2C2F36;
+  --accent-foreground: #F2F3F5;
+  --destructive: #F0554B;
+  --border: #2C2F36; /* border-hairline */
+  --input: #2C2F36;
+  --ring: #34E7A8;
+
+  /* Recall-specific tokens */
+  --canvas: #14161A;
+  --void: #0A0B0D;
+  --card-surface: #1C1F24;
+  --border-hairline: #2C2F36;
+  --text-muted: #8A8D94;
+  --text-secondary: #B4B7BD;
+  --text-primary: #F2F3F5;
+  --accent-brand: #34E7A8;
+  --accent-warm: #FFB454;
+  --canvas-light: #FFFFFF;
+  --linen-light: #F5F6F4;
+
+  /* Semantic grading scale (review screen only) */
+  --grade-again: #F0554B;
+  --grade-hard: #F5A623;
+  --grade-good: #34E7A8;
+  --grade-easy: #4C8CFF;
+
+  --chart-1: #34E7A8;
+  --chart-2: #FFB454;
+  --chart-3: #4C8CFF;
+  --chart-4: #F5A623;
+  --chart-5: #F0554B;
+
+  --sidebar: #0F1115;
+  --sidebar-foreground: #F2F3F5;
+  --sidebar-primary: #34E7A8;
+  --sidebar-primary-foreground: #0A0B0D;
+  --sidebar-accent: #1C1F24;
+  --sidebar-accent-foreground: #F2F3F5;
+  --sidebar-border: #2C2F36;
+  --sidebar-ring: #34E7A8;
+}
+
+/* Light mode override (theme toggle) */
+.light {
+  --background: #FFFFFF;
+  --foreground: #14161A;
+  --card: #F5F6F4;
+  --card-foreground: #14161A;
+  --popover: #FFFFFF;
+  --popover-foreground: #14161A;
+  --primary: #0F8A5F; /* slightly darker accent for AA contrast on white */
+  --primary-foreground: #FFFFFF;
+  --secondary: #EDEEEC;
+  --secondary-foreground: #14161A;
+  --muted: #EDEEEC;
+  --muted-foreground: #5C6068;
+  --accent: #EDEEEC;
+  --accent-foreground: #14161A;
+  --destructive: #C0392B;
+  --border: #D8DAD6;
+  --input: #D8DAD6;
+  --ring: #0F8A5F;
+
+  --canvas: #FFFFFF;
+  --void: #F5F6F4;
+  --card-surface: #F5F6F4;
+  --border-hairline: #D8DAD6;
+  --text-muted: #5C6068;
+  --text-secondary: #3C3F45;
+  --text-primary: #14161A;
+  --accent-brand: #0F8A5F;
+  --accent-warm: #C97A14;
+  --canvas-light: #FFFFFF;
+  --linen-light: #F5F6F4;
+
+  /* Semantic grading scale stays fixed across themes (per §2.2) */
+  --grade-again: #D94036;
+  --grade-hard: #C97A14;
+  --grade-good: #0F8A5F;
+  --grade-easy: #2A6BD8;
+
+  --chart-1: #0F8A5F;
+  --chart-2: #C97A14;
+  --chart-3: #2A6BD8;
+  --chart-4: #C97A14;
+  --chart-5: #D94036;
+
+  --sidebar: #F5F6F4;
+  --sidebar-foreground: #14161A;
+  --sidebar-primary: #0F8A5F;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EDEEEC;
+  --sidebar-accent-foreground: #14161A;
+  --sidebar-border: #D8DAD6;
+  --sidebar-ring: #0F8A5F;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    /* Respect mobile safe areas (iOS notch / home indicator) */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  h1, h2, h3, .font-display {
+    font-family: var(--font-space-grotesk), var(--font-inter), sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  /* Visible :focus-visible state distinct from hover (WCAG 2.2 AA) */
+  :focus-visible {
+    outline: 2px solid var(--accent-brand);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Skip-to-content link */
+  .skip-link {
+    position: absolute;
+    top: -100px;
+    left: 1rem;
+    z-index: 100;
+    padding: 0.75rem 1rem;
+    background: var(--accent-brand);
+    color: var(--void);
+    border-radius: 8px;
+    font-weight: 600;
+    transition: top 150ms ease;
+  }
+  .skip-link:focus {
+    top: 1rem;
+  }
+
+  /* Custom scrollbar for long lists */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--border-hairline);
+    border-radius: 9999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+}
+
+/* ============================================================
+   Utilities
+   ============================================================ */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  .bg-canvas {
+    background-color: var(--canvas);
+  }
+  .bg-void {
+    background-color: var(--void);
+  }
+  .bg-card-surface {
+    background-color: var(--card-surface);
+  }
+  .text-primary-recall {
+    color: var(--text-primary);
+  }
+  .text-secondary-recall {
+    color: var(--text-secondary);
+  }
+  .text-muted-recall {
+    color: var(--text-muted);
+  }
+  .text-accent-brand {
+    color: var(--accent-brand);
+  }
+  .text-accent-warm {
+    color: var(--accent-warm);
+  }
+  .border-hairline {
+    border-color: var(--border-hairline);
+  }
+
+  /* Grade colors — only on the review screen */
+  .bg-grade-again { background-color: var(--grade-again); }
+  .bg-grade-hard  { background-color: var(--grade-hard); }
+  .bg-grade-good  { background-color: var(--grade-good); }
+  .bg-grade-easy  { background-color: var(--grade-easy); }
+  .text-grade-again { color: var(--grade-again); }
+  .text-grade-hard  { color: var(--grade-hard); }
+  .text-grade-good  { color: var(--grade-good); }
+  .text-grade-easy  { color: var(--grade-easy); }
+  .ring-grade-again { --tw-ring-color: var(--grade-again); }
+  .ring-grade-hard  { --tw-ring-color: var(--grade-hard); }
+  .ring-grade-good  { --tw-ring-color: var(--grade-good); }
+  .ring-grade-easy  { --tw-ring-color: var(--grade-easy); }
+}
+
+/* Hero gradient — used as the WebGL fallback */
+.hero-gradient-fallback {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(52, 231, 168, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(255, 180, 84, 0.08) 0%, transparent 50%),
+    linear-gradient(180deg, #0A0B0D 0%, #14161A 100%);
+}
+
+/* Reduced motion: stop all non-essential animation */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

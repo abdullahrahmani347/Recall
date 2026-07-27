@@ -1,0 +1,188 @@
+// Recall — Prisma schema (SQLite for MVP)
+// Mirrors the data model in §6 of the product brief.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  avatarUrl    String?
+  authProvider String    @default("email") // "email" | "google"
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  settings    Settings?
+  notebooks   Notebook[]
+  notes       Note[]
+  tags        Tag[]
+  decks       Deck[]
+  reviewLogs  ReviewLog[]
+}
+
+model Settings {
+  userId            String   @id
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme             String   @default("dark") // "dark" | "light"
+  reducedMotion     Boolean  @default(false)
+  dailyNewCardLimit Int      @default(20)
+  dailyReviewLimit  Int      @default(200)
+  timezone          String   @default("UTC")
+  aiProcessingOptOut Boolean @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Notebook {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  color     String   @default("#34E7A8")
+  parentId  String?
+  parent    Notebook? @relation("NotebookTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Notebook[] @relation("NotebookTree")
+  notes     Note[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Note {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebookId       String?
+  notebook         Notebook? @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  title            String   @default("")
+  contentMarkdown  String   @default("")
+  contentPlainText String   @default("") // denormalized for FTS
+  isArchived       Boolean  @default(false)
+  isPinned         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tags        NoteTag[]
+  summaries   Summary[]
+  flashcards  Flashcard[]
+  attachments Attachment[]
+
+  @@index([userId])
+  @@index([notebookId])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  color     String   @default("#FFB454")
+  notes     NoteTag[]
+  createdAt DateTime @default(now())
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model NoteTag {
+  noteId String
+  tagId  String
+  note   Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, tagId])
+}
+
+model Summary {
+  id          String   @id @default(cuid())
+  noteId      String
+  note        Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  summaryText String   @default("")
+  modelUsed   String   @default("z-ai-glm")
+  status      String   @default("pending") // "pending" | "streaming" | "complete" | "failed"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([noteId])
+}
+
+model Deck {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String   @default("")
+  color       String   @default("#34E7A8")
+  flashcards  Flashcard[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Flashcard {
+  id           String   @id @default(cuid())
+  deckId       String
+  deck         Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  sourceNoteId String?
+  sourceNote   Note?    @relation(fields: [sourceNoteId], references: [id], onDelete: SetNull)
+  cardType     String   @default("basic") // "basic" | "cloze"
+  front        String
+  back         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  schedulingState SchedulingState?
+  reviewLogs      ReviewLog[]
+
+  @@index([deckId])
+}
+
+model SchedulingState {
+  cardId            String   @id
+  card              Flashcard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  dueDate           DateTime @default(now())
+  stability         Float    @default(0.4)
+  difficulty        Float    @default(0.5)
+  interval          Float    @default(0) // in days
+  repetitions       Int      @default(0)
+  lapses            Int      @default(0)
+  algorithmVersion  String   @default("fsrs-4.5")
+  lastReviewedAt    DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model ReviewLog {
+  id              String   @id @default(cuid())
+  cardId          String
+  card            Flashcard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedAt      DateTime @default(now())
+  grade           String   // "again" | "hard" | "good" | "easy"
+  previousInterval Float   @default(0)
+  newInterval     Float    @default(0)
+  responseTimeMs  Int      @default(0)
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  noteId    String
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  fileUrl   String
+  fileType  String
+  sizeBytes Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([noteId])
+}

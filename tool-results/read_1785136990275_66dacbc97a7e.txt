@@ -1,0 +1,299 @@
+     1→     1→# Recall — Product & Engineering Brief
+     2→     2→### Mobile-First Study, Notes & Flashcards App
+     3→     3→*Working title "Recall" — run a trademark search before locking it in; there are existing apps and services using variants of this name.*
+     4→     4→
+     5→     5→---
+     6→     6→
+     7→     7→## 0. Reality Check Before You Read Further
+     8→     8→
+     9→     9→Three parts of the original scope will bite the team if they go in unexamined:
+    10→    10→
+    11→    11→1. **Real-time collaboration is not an MVP feature, full stop.** It's not a toggle you add later — it changes the data model for the note-content field itself (plain JSON/Markdown vs. a CRDT document type). Decide the note-content storage format *now*, even if collaboration ships in Phase 3, because migrating a live user base's note format later means rewriting every stored note. See §7 and §9.
+    12→    12→2. **A WebGL 3D hero on a mobile-first study app is a genuine UX tax, not a free win.** Three.js adds real bundle weight, GPU/battery cost, and thermal throttling risk on the low-to-mid-range Android devices that make up most of the developing-market mobile web. It has to be non-blocking, lazy, and disposable — never load-bearing for the app's actual utility. Treat it as marketing-page garnish, not product identity. See §4.
+    13→    13→3. **"Note summarization" is an AI feature with a data-handling obligation attached, not just a UI button.** The moment you send user notes to a third-party LLM API, you've taken on a privacy-policy disclosure requirement and, if you have any EU users, a GDPR data-processing question. This needs an answer before MVP ships, not after. See §12.
+    14→    14→
+    15→    15→Everything below is written to make those three constraints explicit rather than something the team discovers in a retro three months in.
+    16→    16→
+    17→    17→---
+    18→    18→
+    19→    19→## 1. Assumptions & Constraints
+    20→    20→
+    21→    21→- **Platform:** Mobile-first responsive web app (not native). Desktop is a first-class secondary breakpoint, not an afterthought — but touch targets, thumb-reach zones, and one-handed use drive layout decisions first.
+    22→    22→- **Core MVP surface:** note capture/organization, AI summarization, flashcard creation, spaced-repetition review, search, tagging, export/import.
+    23→    23→- **Deferred to later phases:** real-time multi-user collaboration, AI-generated flashcards from notes, rich media embeds, cross-device conflict-free rich-text editing.
+    24→    24→- **Visual reference:** the attached Huly design-token export is used *only* as a structural mood board — surface hierarchy logic, type-scale ratio, spacing rhythm, control geometry. No hex values, the custom "Esbuild" display font, the logo mark, or literal copy from that reference are to be reused. A fully original token set is defined in §3.2 for exactly this reason — see §12 for why this matters legally, not just stylistically.
+    25→    25→- **Backend:** must be honest about what "real-time" means at each phase. MVP uses request/response + one-way server-sent streaming for AI output. Bidirectional real-time (WebSocket presence, live cursors, collaborative editing) is explicitly Phase 3, gated on CRDT infrastructure being in place.
+    26→    26→- **Offline:** required from MVP for notes, tags, decks, and flashcards (the tabular/structured data). Offline support for rich-text conflict resolution is a harder problem, deferred until the note-content format decision in §7 is locked.
+    27→    27→- **Accessibility:** WCAG 2.2 AA is the target bar, not "best effort."
+    28→    28→
+    29→    29→---
+    30→    30→
+    31→    31→## 2. UI/UX Point of View
+    32→    32→
+    33→    33→### 2.1 Design Philosophy
+    34→    34→
+    35→    35→The reference system (Huly) works because it commits to two hard rules: one accent does all the brand work, and every control uses the same geometric language. Steal the *discipline*, not the palette.
+    36→    36→
+    37→    37→For a study/memory app specifically, color has a job beyond branding: spaced-repetition review already has a semantic color language users half-know from every flashcard app they've touched (red = forgot, amber = hard, green = got it, blue = easy). Fighting that convention with brand color in the review screen would be a usability regression dressed up as originality. So the system below splits into two layers:
+    38→    38→
+    39→    39→- **Brand layer** — one primary accent, one sparingly-used secondary, for navigation, CTAs, and identity.
+    40→    40→- **Semantic layer** — a separate, fixed four-color grading scale for the review screen only, never touched by rebranding.
+    41→    41→
+    42→    42→Overall direction: **near-black graphite canvas, single signal-green accent, rounded-rectangle (not full-pill) controls** — distinct enough from the reference to stand on its own, dark and cinematic enough to feel premium rather than "SaaS admin panel #4,281."
+    43→    43→
+    44→    44→### 2.2 Design Tokens (Original — Do Not Reuse Huly's Values)
+    45→    45→
+    46→    46→**Colors**
+    47→    47→
+    48→    48→| Token | Value | Role |
+    49→    49→|---|---|---|
+    50→    50→| `--color-canvas` | `#14161A` | Default page background, dark mode |
+    51→    51→| `--color-void` | `#0A0B0D` | Deepest layer — modal backdrops, hero base |
+    52→    52→| `--color-card` | `#1C1F24` | Elevated card/panel surface |
+    53→    53→| `--color-border` | `#2C2F36` | Hairline dividers, card edges |
+    54→    54→| `--color-text-muted` | `#8A8D94` | Tertiary text, placeholders |
+    55→    55→| `--color-text-secondary` | `#B4B7BD` | Secondary text, captions |
+    56→    56→| `--color-text-primary` | `#F2F3F5` | Primary reading text |
+    57→    57→| `--color-accent` | `#34E7A8` | Primary CTA, active nav state, brand mark — the single "switched on" color |
+    58→    58→| `--color-accent-warm` | `#FFB454` | Sparingly used: due-soon indicators, streak flame icon, one gradient stop in the hero. Never a second brand color — a punctuation mark |
+    59→    59→| `--color-canvas-light` | `#FFFFFF` | Light-mode canvas, editorial/marketing bands |
+    60→    60→| `--color-linen-light` | `#F5F6F4` | Soft secondary light-mode tint |
+    61→    61→
+    62→    62→**Semantic grading scale (review screen only — fixed, never rebrand this)**
+    63→    63→
+    64→    64→| Token | Value | Meaning |
+    65→    65→|---|---|---|
+    66→    66→| `--grade-again` | `#F0554B` | Forgot / restart interval |
+    67→    67→| `--grade-hard` | `#F5A623` | Recalled with difficulty |
+    68→    68→| `--grade-good` | `#34E7A8` | Recalled correctly (reuses brand accent deliberately) |
+    69→    69→| `--grade-easy` | `#4C8CFF` | Recalled instantly |
+    70→    70→
+    71→    71→Run every text/background pairing above through an automated contrast checker (axe-core or the WebAIM tool) in CI before shipping — don't take these values on faith; verify them against the actual rendered component, since contrast is affected by font weight and size, not just the raw hex pair.
+    72→    72→
+    73→    73→**Typography**
+    74→    74→
+    75→    75→| Face | Use | License |
+    76→    76→|---|---|---|
+    77→    77→| **Inter** | All functional UI — body, nav, buttons, captions. 400 body / 500–600 emphasis. | SIL Open Font License — free, commercial use, no attribution required |
+    78→    78→| **Space Grotesk** | Display only — hero headline, section openers. 32–72px, tight tracking. Never below 24px. | SIL Open Font License, hosted free on Google Fonts |
+    79→    79→
+    80→    80→Do not commission or license a paid display face for MVP. Space Grotesk gets you 90% of the "editorial, not generic SaaS" effect at zero cost and zero licensing review overhead. Revisit a custom commissioned type only after the brand is validated with real users.
+    81→    81→
+    82→    82→**Shape & Spacing**
+    83→    83→
+    84→    84→- Base unit: 4px.
+    85→    85→- Buttons: **12px radius**, not full pill — this alone reads as a distinct system from Huly at a glance.
+    86→    86→- Cards: 16px radius. Modals/sheets: 24px radius (mobile bottom-sheets in particular benefit from a larger top radius).
+    87→    87→- Section rhythm: 64px vertical gap on mobile, 96px on desktop.
+    88→    88→
+    89→    89→### 2.3 Core Screens (MVP)
+    90→    90→
+    91→    91→Onboarding → Home/Library (notes list, grouped by notebook/tag) → Note Editor → Summarize action (async, streamed) → Deck List → Card Editor (manual + "generate from this note" stub for later) → Review Session (full-screen, gesture-first: swipe or tap to grade) → Search (global, notes + cards) → Settings.
+    92→    92→
+    93→    93→---
+    94→    94→
+    95→    95→## 3. 3D Landing Experience — Requirements
+    96→    96→
+    97→    97→**Scope discipline:** the 3D scene exists on the public marketing/landing route only. It never loads inside the authenticated app shell. This is non-negotiable — it protects the actual product from ever being blocked on WebGL.
+    98→    98→
+    99→    99→**Initial config**
+   100→   100→- Library: Three.js, minimal custom shader (a single vertex-displaced plane or particle field — do not import a heavy pre-built scene template).
+   101→   101→- Target: a slow, ambient, low-poly abstraction (think: drifting light particles suggesting "memory forming" or a soft depth-of-field starfield) — not a literal 3D object requiring orbit controls. Ambient scenes are cheaper to render and don't invite interaction patterns you then have to make accessible.
+   102→   102→
+   103→   103→**Performance budget**
+   104→   104→- Scene JS (Three.js + custom code, gzipped): under 150KB.
+   105→   105→- Scene must be lazy-loaded *after* the Largest Contentful Paint (LCP) element (the headline + CTA) has painted — use `IntersectionObserver` and dynamic `import()`, never block first paint on WebGL.
+   106→   106→- Cap to 30fps on `devicePixelRatio > 1` devices to control GPU/thermal load; detect low-memory devices (`navigator.deviceMemory < 4` where available) and skip the scene entirely on those.
+   107→   107→- Pause the render loop with the Page Visibility API when the tab isn't focused.
+   108→   108→
+   109→   109→**Fallbacks (mandatory, not optional)**
+   110→   110→1. No WebGL context available → static CSS gradient using the accent tokens above, or a single optimized AVIF/WebP poster frame.
+   111→   111→2. `prefers-reduced-motion: reduce` → static poster frame, no exceptions. Do not offer a "reduce but still animate slowly" middle state — reduced motion means static.
+   112→   112→3. `navigator.connection.saveData === true` or a slow effective connection type → skip the WebGL bundle download entirely, serve the poster frame.
+   113→   113→
+   114→   114→**Accessibility**
+   115→   115→- The `<canvas>` element is `aria-hidden="true"`; it is decorative, not informational, so it must never be the only carrier of content.
+   116→   116→- Headline and CTA are real DOM text, not baked into the canvas or an image — screen readers and SEO crawlers need this regardless of the 3D layer's state.
+   117→   117→
+   118→   118→---
+   119→   119→
+   120→   120→## 4. GSAP Animation Plan
+   121→   121→
+   122→   122→GSAP's licensing changed materially in 2025 and this affects your build decision, so it's worth stating precisely: as of **April 30, 2025**, GSAP — including every plugin that used to require a paid Club GreenSock membership (ScrollTrigger, SplitText, MorphSVG, DrawSVG, ScrollSmoother, Inertia) — is free for commercial use under GSAP's Standard License, following Webflow's acquisition of GreenSock. <cite index="4-1">Webflow made GSAP 100% free for the web community, giving developers more freedom to harness the full breadth of GSAP-powered motion, expanding the standard license to cover commercial use at no cost.</cite> The one carve-out in that license is a prohibition on building a *no-code visual animation tool that competes with Webflow's own builder* <cite index="5-1">— "Prohibited Uses" means implementation of GSAP Products in tools that allow users to build visual animations without code that competes with Webflow's visual animation building capabilities</cite> — which has zero relevance to a study app. Net effect: no licensing cost or review overhead, use whichever plugins the animation plan actually needs.
+   123→   123→
+   124→   124→**Sequences**
+   125→   125→1. **Hero entrance:** headline chars/words fade+rise (SplitText, now free — use it, it's the right tool), staggered 40ms, CTA fades in 200ms after.
+   126→   126→2. **Scroll-triggered feature reveals:** ScrollTrigger-pinned sections for the 3–4 feature cards below the fold, each triggering a fade+8px-rise on entry, `once: true` (don't re-animate on scroll-back, it reads as janky rather than polished).
+   127→   127→3. **Review-session micro-feedback:** card flip (CSS `transform: rotateY`, GSAP-driven timeline) on tap; grade-button press gives a 120ms scale-down/up "confirm" pulse.
+   128→   128→4. **Progress/streak counter:** number roll-up animation on the home screen (GSAP `+=` tween on a proxy object, not on raw DOM text nodes, to avoid layout thrash).
+   129→   129→
+   130→   130→**`prefers-reduced-motion` handling**
+   131→   131→- Wrap every ScrollTrigger and entrance timeline in a check against `window.matchMedia('(prefers-reduced-motion: reduce)').matches`.
+   132→   132→- Reduced-motion path: opacity-only crossfades, 0 duration on transforms, no scroll-pinning, no auto-playing counters (jump straight to end value).
+   133→   133→- This is a build-time branch, not a "lower the duration" tweak — test it as its own path in QA.
+   134→   134→
+   135→   135→---
+   136→   136→
+   137→   137→## 5. Technology Stack
+   138→   138→
+   139→   139→| Layer | Recommendation | Why |
+   140→   140→|---|---|---|
+   141→   141→| Frontend framework | **Next.js (App Router) + TypeScript** | Given your CADENCE and Reel builds already standardized on Next.js, staying consistent here cuts ramp-up time and lets you reuse SSR/streaming patterns you've already solved. |
+   142→   142→| State | React Context for auth/theme (low-frequency), **TanStack Query** for all server state (notes, decks, cards) instead of Redux — spaced-repetition apps are fundamentally "fetch, mutate, invalidate" workloads, and Query's cache + optimistic-update model fits that better than a hand-rolled Redux store. | Reduces boilerplate vs. Redux Toolkit for this specific data shape. |
+   143→   143→| Styling | Tailwind (v4, CSS-first `@theme` config) | Matches the token system in §2.2 directly; avoids a second styling paradigm. |
+   144→   144→| 3D/animation | Three.js + GSAP (see §3–4) | As specified. |
+   145→   145→| Backend | **Fastify (Node.js) + PostgreSQL** | Same stack family as CADENCE — reuse your auth middleware, request validation, and deployment pipeline instead of standing up a second backend pattern from scratch. |
+   146→   146→| AI summarization transport | **SSE (Server-Sent Events)**, not a full WebSocket, for MVP | You already have SSE streaming solved from CADENCE's AI chat work. SSE is one-directional (server→client), which is exactly what "stream a summary as it generates" needs — it's simpler to operate than bidirectional WebSocket infrastructure and doesn't require you to have solved presence/rooms yet. Save WebSocket for when Phase 3 collaboration actually needs bidirectional presence. |
+   147→   147→| Search / embeddings | **pgvector** on the same Postgres instance | Powers both semantic search over notes (Phase 2) and "find related notes" without adding a second database. Also consistent with your existing stack decisions. |
+   148→   148→| Auth | JWT access token (15 min) + httpOnly refresh cookie (rotating), email/password via Argon2id hashing, Google OAuth2 at minimum for MVP | Standard, auditable, no vendor lock-in. |
+   149→   149→| Offline persistence | **Dexie.js (IndexedDB wrapper)** | Same library your GullyScore offline-first architecture already uses — direct pattern reuse. |
+   150→   150→| Testing | Playwright (E2E), Vitest (unit) | Playwright for the review-flow and offline-sync critical paths especially — these are the two places regressions are costly and easy to miss manually. |
+   151→   151→
+   152→   152→---
+   153→   153→
+   154→   154→## 6. Data Model
+   155→   155→
+   156→   156→| Entity | Key Fields | Notes |
+   157→   157→|---|---|---|
+   158→   158→| **User** | id, email, passwordHash, name, avatarUrl, authProvider, createdAt | |
+   159→   159→| **Settings** | userId (FK, 1:1), theme, reducedMotion, dailyNewCardLimit, dailyReviewLimit, timezone, aiProcessingOptOut (bool) | The `aiProcessingOptOut` field exists specifically because of §12 — users need a way to keep specific content out of the summarization pipeline. |
+   160→   160→| **Notebook** | id, userId, name, color, parentId (nullable, for nesting), createdAt | |
+   161→   161→| **Note** | id, userId, notebookId, title, contentJSON (see §7 for format decision), contentPlainText (denormalized, for FTS/pgvector indexing), isArchived, isPinned, createdAt, updatedAt | |
+   162→   162→| **Tag** | id, userId, name, color, createdAt | |
+   163→   163→| **NoteTag** | noteId, tagId | join table |
+   164→   164→| **Summary** | id, noteId, summaryText, modelUsed, status (pending/streaming/complete/failed), createdAt | Kept separate from Note so regenerating a summary never touches the source content. |
+   165→   165→| **Deck** | id, userId, name, description, color, createdAt | |
+   166→   166→| **Flashcard** | id, deckId, sourceNoteId (nullable), cardType (basic/cloze), front, back, createdAt, updatedAt | |
+   167→   167→| **SchedulingState** | cardId (FK, 1:1), dueDate, stability, difficulty, interval, repetitions, lapses, algorithmVersion, lastReviewedAt | One row per card, updated on every review — see §12 on FSRS vs. SM-2. |
+   168→   168→| **ReviewLog** | id, cardId, userId, reviewedAt, grade (again/hard/good/easy), previousInterval, newInterval, responseTimeMs | Append-only; this is your audit trail and the raw material for any future "retention analytics" feature. |
+   169→   169→| **Attachment** | id, noteId, fileUrl, fileType, sizeBytes, createdAt | |
+   170→   170→| *(Phase 3)* **CollabSession**, **PresenceState** | — | Deliberately not designed yet — depends on the CRDT decision in §7/§9. Designing this now would be guessing. |
+   171→   171→
+   172→   172→---
+   173→   173→
+   174→   174→## 7. API Contract Skeleton (REST, high-level)
+   175→   175→
+   176→   176→**Auth**
+   177→   177→`POST /auth/register` · `POST /auth/login` · `POST /auth/refresh` · `POST /auth/logout` · `GET /auth/me` · `GET /auth/oauth/:provider/redirect`
+   178→   178→
+   179→   179→**Notes**
+   180→   180→`GET /notes` (filters: notebookId, tag, archived) · `POST /notes` · `GET /notes/:id` · `PATCH /notes/:id` · `DELETE /notes/:id`
+   181→   181→`POST /notes/:id/summarize` → kicks off an async job, returns `{ summaryId, status: "pending" }`
+   182→   182→`GET /notes/:id/summary/stream` → **SSE** endpoint, streams tokens as the summary generates, terminates with a `done` event
+   183→   183→
+   184→   184→**Tags / Notebooks**
+   185→   185→`GET|POST /tags`, `PATCH|DELETE /tags/:id`, `POST|DELETE /notes/:id/tags/:tagId` — same shape for `/notebooks`
+   186→   186→
+   187→   187→**Decks & Flashcards**
+   188→   188→`GET|POST /decks`, `GET|PATCH|DELETE /decks/:id`
+   189→   189→`GET|POST /decks/:id/cards`, `PATCH|DELETE /cards/:id`
+   190→   190→`POST /notes/:id/generate-cards` — **stubbed in MVP, returns 501 Not Implemented on purpose** until the AI-generated-flashcards feature is actually built in Phase 2; don't ship a fake success response for a feature that doesn't exist yet.
+   191→   191→
+   192→   192→**Review**
+   193→   193→`GET /review/queue?deckId=` → returns due cards ranked by the scheduling algorithm
+   194→   194→`POST /cards/:id/review` → body `{ grade, responseTimeMs }`, returns updated `SchedulingState`
+   195→   195→
+   196→   196→**Search**
+   197→   197→`GET /search?q=&type=notes|cards&tags=`
+   198→   198→
+   199→   199→**Export / Import**
+   200→   200→`GET /export?format=markdown|json` (MVP formats — see §12 on why `.apkg` is a Phase 2+ decision, not MVP)
+   201→   201→`POST /import` (multipart, `format` param)
+   202→   202→
+   203→   203→**Realtime — phased honestly**
+   204→   204→- MVP: SSE only, one endpoint (`/notes/:id/summary/stream`), no persistent connection registry needed.
+   205→   205→- Phase 3: `WS /ws/collab/:noteId` — gated entirely on the CRDT decision below.
+   206→   206→
+   207→   207→---
+   208→   208→
+   209→   209→## 8. Offline & Sync Strategy
+   210→   210→
+   211→   211→- **Structured data (notebooks, tags, decks, cards, scheduling state):** Dexie/IndexedDB mirrors the server schema. Writes go local-first with optimistic UI, queued in an `outbox` table, flushed via a Service Worker background-sync when connectivity returns. Conflict resolution: last-write-wins keyed on `updatedAt`, which is fine for this data — a tag rename or a card edit rarely has two people editing it at once in a single-user MVP.
+   212→   212→- **Rich-text note content is the hard case, and this is the decision that has to happen before Phase 1 coding starts, not after:**
+   213→   213→  - **Option A (simple, MVP-friendly):** store note content as plain JSON (e.g., a ProseMirror/Tiptap document tree) or Markdown. Offline editing works fine single-user. Last-write-wins is *acceptable* for a single user editing across two of their own devices, but it is *not* viable the moment a second human edits the same note — so this option caps you at single-user editing until you migrate.
+   214→   214→  - **Option B (collaboration-ready from day one):** store note content as a **Yjs** CRDT document from the start. Yjs is purpose-built for exactly this — offline-first local edits that merge conflict-free when reconnected, *and* it's the same data structure real-time collaboration needs later, so Phase 3 doesn't require a content-format migration at all.
+   215→   215→  - **Recommendation:** Option B, even though real-time collab is Phase 3. The cost of adopting Yjs early (a slightly less human-readable stored format, a small library dependency) is much lower than the cost of migrating every user's note content mid-flight later — that migration is the kind of thing that corrupts formatting on edge cases and generates support tickets for months. This is the single highest-leverage architecture decision in this whole brief.
+   216→   216→- **Search index:** rebuild the local FTS index (or query the pgvector-backed server index when online) rather than trying to sync a search index offline — search staleness by a few minutes is an acceptable trade, sync complexity for a search index is not worth the engineering cost.
+   217→   217→
+   218→   218→---
+   219→   219→
+   220→   220→## 9. Detailed User Flows
+   221→   221→
+   222→   222→**Onboarding**
+   223→   223→Landing (3D hero) → Sign up (email or Google OAuth) → single-screen preference capture (daily new-card limit, reduced-motion preference, theme) → empty-state Home screen with a "Create your first note" and "Import from Markdown" dual CTA — don't force a tutorial walkthrough; an empty state with one obvious action converts better than a 5-step tour for a utility app.
+   224→   224→
+   225→   225→**Create/Edit Note**
+   226→   226→Home → "+" (thumb-reachable, bottom-right on mobile) → Editor (title + rich-text body) → autosave every ~2s to local Dexie store + debounced sync to server when online → tag/notebook assignment via a bottom sheet, not a modal (mobile-first: sheets preserve context, modals interrupt it).
+   227→   227→
+   228→   228→**Summarize a Note**
+   229→   229→Note view → "Summarize" action → optimistic UI shows a streaming skeleton → SSE stream populates the summary card token-by-token → summary is saved as a separate `Summary` record (never overwrites the source note) → user can regenerate or dismiss.
+   230→   230→
+   231→   231→**Create Flashcards**
+   232→   232→From a note: select text → "Make flashcard" → pre-fills `front` with the selection, cursor moves to `back` for manual entry (MVP is manual; "auto-generate from note" is the `501` stub above, built out in Phase 2 once summarization quality is validated — auto-generating cards from a bad summary produces bad cards, so sequencing matters). Standalone: Deck view → "+ Card."
+   233→   233→
+   234→   234→**Study / Spaced-Repetition Review**
+   235→   235→Deck (or Home "Due Today") → Review session, full-screen, one card at a time → tap/swipe to reveal answer → four-button grade (Again/Hard/Good/Easy, using the semantic palette from §2.2) → `SchedulingState` updates, next card loads immediately, no confirmation dialog (confirmation friction on a repeated action of 20+ per session is a real usability cost) → session-end summary (cards reviewed, new streak count).
+   236→   236→
+   237→   237→**Search**
+   238→   238→Persistent search entry point (bottom nav on mobile) → query returns notes and cards in separate, clearly labeled sections, ranked by recency + relevance → tag filter chips above results.
+   239→   239→
+   240→   240→**Export / Import**
+   241→   241→Settings → Export → format picker (Markdown zip / JSON) → server generates async, emails/downloads link when ready for large exports. Import mirrors this, with a pre-import preview screen showing "X notes, Y tags will be created" before committing — never import silently into a user's existing library without a preview step.
+   242→   242→
+   243→   243→---
+   244→   244→
+   245→   245→## 10. Accessibility & Internationalization
+   246→   246→
+   247→   247→**Accessibility**
+   248→   248→- Target WCAG 2.2 AA. Every interactive element gets a visible `:focus-visible` state distinct from hover (dark UIs especially tend to skip this and then fail keyboard-nav audits).
+   249→   249→- Skip-to-content link on every route.
+   250→   250→- The streaming summary and toast notifications use `aria-live="polite"` regions — async content that appears without user action needs to be announced, not silently rendered.
+   251→   251→- Review-session grading is fully keyboard-operable (number keys 1–4 mapped to Again/Hard/Good/Easy is the de facto convention in this product category — following it costs nothing and meets user expectations from other tools).
+   252→   252→- Run axe-core in CI (Playwright has an axe integration) on every PR touching a shared component, not just as a pre-launch pass — accessibility regressions creep in one Tailwind class change at a time.
+   253→   253→
+   254→   254→**Internationalization**
+   255→   255→- Even if MVP ships English-only, wire copy through `next-intl` or `react-i18next` from the start — retrofitting i18n keys into hardcoded JSX strings later is a full-team, multi-week tax that's entirely avoidable by paying a small tax now.
+   256→   256→- Use CSS logical properties (`margin-inline-start`, not `margin-left`) throughout. Given your location, Urdu is a plausible future locale and it's RTL — logical properties mean RTL support is a `dir="rtl"` flip and a font swap, not a layout rewrite.
+   257→   257→
+   258→   258→---
+   259→   259→
+   260→   260→## 11. Legal & Licensing Clarity
+   261→   261→
+   262→   262→This is not legal advice — treat the points below as things to raise with actual counsel before public launch, not as a substitute for that review.
+   263→   263→
+   264→   264→- **On the Huly reference specifically:** Huly's application source code is licensed under **EPL-2.0** and is genuinely open — <cite index="15-1">the Huly platform source code is available on GitHub, and self-hosted deployments are free to use and modify under that license</cite>. But that license attaches to the *code repositories*, not automatically to the marketing site's specific visual design, brand mark, wordmark, or the literal headline copy shown in the screenshot you provided — those are typically governed separately (often all-rights-reserved) even alongside an open-source codebase, and reproducing a competitor's distinctive visual identity too closely can raise trade-dress concerns independent of copyright. This is exactly why §2.2 defines an original token set rather than reusing the extracted values — treat the reference as a structural mood board only, never as source material to be copied.
+   265→   265→- **GSAP:** confirmed free for commercial use including all former paid plugins as of April 30, 2025 (see §4 for the citation and the one narrow carve-out, which doesn't apply here). No licensing cost or review needed.
+   266→   266→- **Fonts:** Inter and Space Grotesk are both SIL Open Font License — free for commercial use, no attribution requirement, no licensing review needed. This is precisely why §2.2 recommends them over a bespoke display face for MVP.
+   267→   267→- **Spaced-repetition algorithm:** the classic SM-2 algorithm (Wozniak, 1987) has been publicly documented and freely implemented by dozens of open-source projects for decades — no licensing barrier. **FSRS** (Free Spaced Repetition Scheduler) is MIT-licensed, open source, and generally benchmarks as more accurate than SM-2 in independent testing — recommend building on FSRS from day one rather than shipping SM-2 first, since migrating users' scheduling state between algorithms mid-flight disrupts their review queues. Avoid using competitor product names ("Anki-style scheduling") in *user-facing marketing copy* even though the math itself is open and unencumbered — keep those references in internal engineering docs only.
+   268→   268→- **Export interoperability:** Markdown/JSON export is unambiguous. If `.apkg` (Anki-package) export gets added later, note it's a documented, widely-implemented SQLite-based container format with existing open-source libraries — but don't use the word "Anki" in-product UI without framing it clearly as an interoperability feature, not an affiliation or endorsement.
+   269→   269→- **AI summarization data handling:** sending user note content to a third-party LLM API is a data-processing event that needs disclosure in the privacy policy, plus (per §6) a per-user opt-out setting. If you take EU users, this likely needs a data-processing agreement with whichever LLM vendor you use and a documented retention/deletion policy — flag this to counsel before EU launch specifically, not as a general "someday" item.
+   270→   270→- **App name/logo/trademark:** run an actual trademark clearance search before locking "Recall" (or whatever name ships) — consistent with the clearance step you've already been flagging on other projects (Reel, for instance).
+   271→   271→
+   272→   272→---
+   273→   273→
+   274→   274→## 12. Phased Roadmap
+   275→   275→
+   276→   276→Sizing below is relative (S/M/L/XL) rather than calendar time, since actual duration depends on team size and availability, which isn't specified here — apply your own throughput to size these into a schedule. Confidence on the *sequencing* is high; confidence on any specific calendar estimate without headcount is low, so none is given.
+   277→   277→
+   278→   278→### Phase 1 — MVP
+   279→   279→**Ships:** email/Google auth · notebook + note CRUD with autosave · tagging · AI summarization via SSE streaming (with the opt-out setting live from day one, not bolted on later) · manual flashcard creation · FSRS-based review engine · offline support for notes/decks/cards via Dexie · global search (notes + cards) · Markdown/JSON export-import · 3D marketing landing page with full fallback chain · dark/light theme · WCAG 2.2 AA baseline.
+   280→   280→
+   281→   281→**Explicitly cut from MVP (say so loudly, don't let this creep back in silently):** real-time collaboration, AI-generated flashcards from notes, `.apkg` export, non-Google OAuth providers, rich media embeds beyond basic image attachment.
+   282→   282→
+   283→   283→**Exit criteria:** a user can capture a note, get it summarized, turn it into cards, and complete a review session — fully offline after first load, with sync resuming cleanly on reconnect. That end-to-end loop, tested under airplane-mode-toggle conditions in Playwright, is the actual MVP bar — not a feature checklist.
+   284→   284→
+   285→   285→### Phase 2 — Depth
+   286→   286→**Ships:** AI-generated flashcard suggestions from a note/summary (now that summarization quality is validated in production) · richer editor (tables, code blocks, image paste) · pgvector-powered semantic search and "related notes" · `.apkg` export · daily/weekly study analytics (retention rate, streak) · push/email due-card reminders.
+   287→   287→
+   288→   288→### Phase 3 — Real-Time & Polish
+   289→   289→**Ships:** actual bidirectional collaboration on shared notebooks, built on the Yjs foundation laid in Phase 1 (§9) — presence indicators, live cursors, comment threads · WebSocket sync layer replacing SSE-only transport · full performance and accessibility re-audit · advanced onboarding personalization.
+   290→   290→
+   291→   291→---
+   292→   292→
+   293→   293→## 13. Open Risks & Questions for the Team
+   294→   294→
+   295→   295→1. **LLM vendor for summarization** — cost-per-summary, latency, and data-retention terms differ a lot by provider; this choice gates the privacy-policy language in §12 and should be locked before Phase 1 engineering starts, not mid-sprint.
+   296→   296→2. **FSRS parameter initialization** — FSRS needs either default global parameters (fine for MVP) or per-user optimization from review history (a Phase 2 refinement, not a blocker).
+   297→   297→3. **Yjs adoption cost** — confirm the team's comfort with CRDT concepts before committing to §9's recommendation; it's the right long-term call but it is a real learning curve if nobody on the team has used Yjs before. Budget onboarding time for it explicitly rather than assuming it's a drop-in library.
+   298→   298→4. **Trademark clearance on "Recall"** — flagged in §12, needs an actual answer before the name goes on a splash screen anywhere public.
+   299→   299→
