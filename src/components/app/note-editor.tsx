@@ -32,12 +32,20 @@ import {
   Link as LinkIcon,
   ImageIcon,
   Wand2,
+  MessageSquare,
+  Users,
 } from 'lucide-react'
 import type { ApiNote, ApiTag } from '@/lib/types'
 import { toast } from 'sonner'
 import { SummaryStream } from './summary-stream'
 import { GenerateCardsDialog } from './generate-cards-dialog'
 import { RelatedNotes } from './related-notes'
+import { PresenceAvatars } from './presence-avatars'
+import { LiveCursors } from './live-cursors'
+import { CommentsSidebar } from './comments-sidebar'
+import { CollaboratorsDialog } from './collaborators-dialog'
+import { useCollab } from '@/hooks/use-collab'
+import { useAuth } from '@/hooks/use-auth'
 import { formatDistanceToNow } from 'date-fns'
 
 type EditorMode = 'edit' | 'preview' | 'split'
@@ -45,6 +53,7 @@ type EditorMode = 'edit' | 'preview' | 'split'
 export function NoteEditor() {
   const qc = useQueryClient()
   const { activeNoteId, setView, openNote } = useAppStore()
+  const { user } = useAuth()
   const isNew = !activeNoteId
 
   const [title, setTitle] = useState('')
@@ -57,6 +66,9 @@ export function NoteEditor() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
   const [editorMode, setEditorMode] = useState<EditorMode>('edit')
   const [showGenerateCards, setShowGenerateCards] = useState(false)
+  const [showComments, setShowComments] = useState(false)
+  const [showCollaborators, setShowCollaborators] = useState(false)
+  const [remoteUpdateBanner, setRemoteUpdateBanner] = useState<string | null>(null)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   // Ref mirror of noteId so the autosave callback always sees the latest
@@ -132,6 +144,33 @@ export function NoteEditor() {
     },
   })
 
+  // Phase 3: real-time collaboration hook
+  const collabUser = user
+    ? { id: user.id, name: user.name }
+    : null
+  const { presence, cursors, sendCursor, broadcastNoteUpdate, broadcastComment } = useCollab(
+    noteId,
+    collabUser,
+    {
+      onNoteUpdated: () => {
+        // Another user edited the note — show a banner and refresh the query
+        setRemoteUpdateBanner('Another editor just updated this note')
+        qc.invalidateQueries({ queryKey: ['note', noteId] })
+        // Auto-clear the banner after 4 seconds
+        setTimeout(() => setRemoteUpdateBanner(null), 4000)
+      },
+      onComment: () => {
+        qc.invalidateQueries({ queryKey: ['comments', noteId] })
+      },
+    }
+  )
+  // Keep broadcastNoteUpdate in a ref so the save callback's identity stays
+  // stable (the eslint rule requires manual memoization to be preserved).
+  const broadcastNoteUpdateRef = useRef(broadcastNoteUpdate)
+  useEffect(() => {
+    broadcastNoteUpdateRef.current = broadcastNoteUpdate
+  })
+
   // Autosave (debounced 1.2s) — per §9 of the brief
   const save = useCallback(async () => {
     if (!dirty) return
@@ -164,6 +203,8 @@ export function NoteEditor() {
         setDirty(false)
         setSavedAt(new Date())
         qc.invalidateQueries({ queryKey: ['notes'] })
+        // Phase 3: broadcast the edit to other viewers
+        broadcastNoteUpdateRef.current()
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Save failed')
@@ -378,6 +419,42 @@ export function NoteEditor() {
           </div>
 
           <div className="flex items-center gap-1">
+            {/* Phase 3: Presence indicators */}
+            {noteId && (
+              <PresenceAvatars
+                presence={presence}
+                currentUserId={user?.id ?? ''}
+              />
+            )}
+
+            {/* Phase 3: Comments button */}
+            {noteId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowComments(true)}
+                className="h-8 w-8 p-0"
+                aria-label="Comments"
+                title="Comments"
+              >
+                <MessageSquare className="h-4 w-4 text-muted-recall" />
+              </Button>
+            )}
+
+            {/* Phase 3: Collaborators button (only if note is in a notebook) */}
+            {noteId && noteData?.note?.notebookId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCollaborators(true)}
+                className="h-8 w-8 p-0"
+                aria-label="Manage collaborators"
+                title="Manage collaborators"
+              >
+                <Users className="h-4 w-4 text-muted-recall" />
+              </Button>
+            )}
+
             <Button
               variant="ghost"
               size="sm"
@@ -404,6 +481,17 @@ export function NoteEditor() {
             </Button>
           </div>
         </div>
+
+        {/* Phase 3: Remote update banner */}
+        {remoteUpdateBanner && (
+          <div
+            className="border-b border-accent-brand/30 bg-accent-brand/10 px-4 py-2 text-center text-xs text-accent-brand"
+            role="status"
+            aria-live="polite"
+          >
+            {remoteUpdateBanner}
+          </div>
+        )}
       </header>
 
       {/* EDITOR */}
@@ -506,6 +594,13 @@ export function NoteEditor() {
           </div>
         </div>
 
+        {/* Phase 3: Live cursor indicators */}
+        {noteId && editorMode !== 'preview' && (
+          <div className="mt-2 min-h-[24px]">
+            <LiveCursors cursors={cursors} currentUserId={user?.id ?? ''} />
+          </div>
+        )}
+
         {/* EDITOR BODY — edit / split / preview */}
         <div className={`mt-4 ${editorMode === 'split' ? 'grid gap-4 lg:grid-cols-2' : ''}`}>
           {editorMode !== 'preview' && (
@@ -514,6 +609,21 @@ export function NoteEditor() {
               value={body}
               onChange={(e) => onBodyChange(e.target.value)}
               onPaste={onPaste}
+              onKeyUp={(e) => {
+                // Phase 3: broadcast cursor position for live cursors
+                const ta = e.currentTarget
+                const pos = ta.selectionStart
+                const line = (body.slice(0, pos).match(/\n/g) ?? []).length
+                const col = pos - body.lastIndexOf('\n', pos - 1) - 1
+                if (line >= 0 && col >= 0) sendCursor(line, col)
+              }}
+              onClick={(e) => {
+                const ta = e.currentTarget
+                const pos = ta.selectionStart
+                const line = (body.slice(0, pos).match(/\n/g) ?? []).length
+                const col = pos - body.lastIndexOf('\n', pos - 1) - 1
+                if (line >= 0 && col >= 0) sendCursor(line, col)
+              }}
               placeholder={`Start writing… Markdown is welcome.\n\n# Heading\n- bullet\n**bold** _italic_\n\n\`\`\`\n// code block\n\`\`\`\n\n| Col A | Col B |\n| --- | --- |\n| 1 | 2 |`}
               className="min-h-[60vh] resize-none border-0 bg-transparent px-0 text-base leading-relaxed shadow-none focus-visible:ring-0"
               aria-label="Note body"
@@ -603,6 +713,26 @@ export function NoteEditor() {
         <GenerateCardsDialog
           noteId={noteId}
           onClose={() => setShowGenerateCards(false)}
+        />
+      )}
+
+      {/* Phase 3: Comments sidebar */}
+      {showComments && noteId && (
+        <CommentsSidebar
+          noteId={noteId}
+          open={showComments}
+          onClose={() => setShowComments(false)}
+          onBroadcastComment={broadcastComment}
+        />
+      )}
+
+      {/* Phase 3: Collaborators dialog */}
+      {showCollaborators && noteId && noteData?.note?.notebookId && (
+        <CollaboratorsDialog
+          notebookId={noteData.note.notebookId}
+          notebookName={noteData.note.notebook?.name ?? 'Notebook'}
+          isOwner={noteData.note.userId === user?.id}
+          onClose={() => setShowCollaborators(false)}
         />
       )}
 

@@ -176,3 +176,42 @@ export interface Analytics {
   avgResponseTimeMs: number
   deckStats: DeckStat[]
 }
+
+// Phase 3 types
+
+export interface ApiCollaborator {
+  id: string
+  notebookId: string
+  userId: string
+  name: string | null
+  email: string
+  role: 'editor' | 'viewer'
+  createdAt: string
+}
+
+export interface ApiComment {
+  id: string
+  noteId: string
+  userId: string
+  userName: string | null
+  body: string
+  anchorText: string | null
+  resolved: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PresenceUser {
+  userId: string
+  name: string
+  color: string
+  cursor: { line: number; col: number } | null
+}
+
+export interface ApiOnboarding {
+  completed: boolean
+  studyGoal: string | null
+  experienceLevel: string | null
+  interests: string[]
+  dailyGoalMinutes: number
+}

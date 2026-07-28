@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '@/stores/app-store'
 import { useAuth } from '@/hooks/use-auth'
+import { api } from '@/lib/api-client'
 import { LandingPage } from '@/components/landing/landing-page'
 import { AuthScreen } from '@/components/auth/auth-screen'
 import { BottomNav } from '@/components/app/bottom-nav'
@@ -16,11 +18,23 @@ import { SearchView } from '@/components/app/search-view'
 import { SettingsView } from '@/components/app/settings-view'
 import { AnalyticsView } from '@/components/app/analytics-view'
 import { ReminderBanner } from '@/components/app/reminder-banner'
+import { OnboardingFlow } from '@/components/app/onboarding-flow'
 import { Loader2 } from 'lucide-react'
 
 export default function Home() {
   const { user, view, isLoading } = useAuth()
   const setView = useAppStore((s) => s.setView)
+
+  // Check onboarding status when user logs in. Use a query so React Query
+  // manages the fetch lifecycle — avoids setState-in-effect.
+  const { data: onboardingData } = useQuery({
+    queryKey: ['onboarding-check', user?.id],
+    queryFn: () =>
+      api<{ onboarding: { completed: boolean } | null }>('/api/onboarding'),
+    enabled: !!user,
+    staleTime: 60_000,
+  })
+  const needsOnboarding = !!user && !onboardingData?.onboarding?.completed && onboardingData !== undefined
 
   // Redirect logic based on auth state
   useEffect(() => {
@@ -46,6 +60,11 @@ export default function Home() {
   if (!user) {
     if (view === 'auth') return <AuthScreen />
     return <LandingPage />
+  }
+
+  // Show onboarding for new users (but allow them to skip into the app)
+  if (needsOnboarding && view !== 'note-editor' && view !== 'review') {
+    return <OnboardingFlow />
   }
 
   // FULL-SCREEN APP ROUTES (no bottom nav)

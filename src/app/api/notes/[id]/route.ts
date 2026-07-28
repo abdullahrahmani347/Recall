@@ -19,11 +19,18 @@ export async function GET(_req: NextRequest, { params }: Params) {
   if (response) return response
 
   const { id } = await params
+  // Find the note owned by the user OR in a notebook the user collaborates on
   const note = await db.note.findFirst({
-    where: { id, userId: user!.id },
+    where: {
+      id,
+      OR: [
+        { userId: user!.id },
+        { notebook: { collaborators: { some: { userId: user!.id } } } },
+      ],
+    },
     include: {
       tags: { include: { tag: true } },
-      notebook: true,
+      notebook: { include: { collaborators: true } },
       summaries: {
         orderBy: { createdAt: 'desc' },
         take: 5,
@@ -39,7 +46,22 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (response) return response
 
   const { id } = await params
-  const existing = await db.note.findFirst({ where: { id, userId: user!.id } })
+  // Find the note owned by the user OR in a notebook where the user is an editor
+  const existing = await db.note.findFirst({
+    where: {
+      id,
+      OR: [
+        { userId: user!.id },
+        {
+          notebook: {
+            collaborators: {
+              some: { userId: user!.id, role: 'editor' },
+            },
+          },
+        },
+      ],
+    },
+  })
   if (!existing) return notFound('Note not found')
 
   const body = await req.json().catch(() => null)

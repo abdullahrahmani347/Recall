@@ -26,6 +26,9 @@ model User {
   tags        Tag[]
   decks       Deck[]
   reviewLogs  ReviewLog[]
+  collaborations Collaborator[]
+  comments    Comment[]
+  onboarding  Onboarding?
 }
 
 model Settings {
@@ -55,6 +58,7 @@ model Notebook {
   parent    Notebook? @relation("NotebookTree", fields: [parentId], references: [id], onDelete: SetNull)
   children  Notebook[] @relation("NotebookTree")
   notes     Note[]
+  collaborators Collaborator[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -80,6 +84,7 @@ model Note {
   flashcards  Flashcard[]
   attachments Attachment[]
   embeddings  Embedding[]
+  comments    Comment[]
 
   @@index([userId])
   @@index([notebookId])
@@ -208,4 +213,53 @@ model Embedding {
 
   @@unique([noteId])
   @@index([noteId])
+}
+
+// Phase 3: Real-time collaboration
+
+model Collaborator {
+  id          String   @id @default(cuid())
+  notebookId  String
+  notebook    Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  userId      String   // the invited user
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        String   @default("editor") // "editor" | "viewer"
+  invitedBy   String   // the user who sent the invite
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([notebookId, userId])
+  @@index([notebookId])
+  @@index([userId])
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  noteId      String
+  note        Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body        String
+  anchorText  String?  // optional selected text the comment refers to
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([noteId])
+  @@index([userId])
+}
+
+// Phase 3: Onboarding personalization
+
+model Onboarding {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completed     Boolean  @default(false)
+  studyGoal     String?  // "exam" | "language" | "hobby" | "work" | "school"
+  experienceLevel String? // "beginner" | "intermediate" | "advanced"
+  interests     String   @default("[]") // JSON array of subject tags
+  dailyGoalMinutes Int  @default(15)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
