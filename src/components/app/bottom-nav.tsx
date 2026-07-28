@@ -1,7 +1,7 @@
 'use client'
 
 import { useAppStore } from '@/stores/app-store'
-import { Home, Notebook, Layers, Search, Settings } from 'lucide-react'
+import { Home, Notebook, Layers, Search, Settings, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const NAV = [
@@ -9,6 +9,7 @@ const NAV = [
   { view: 'notes', label: 'Notes', icon: Notebook },
   { view: 'decks', label: 'Decks', icon: Layers },
   { view: 'search', label: 'Search', icon: Search },
+  { view: 'analytics', label: 'Stats', icon: BarChart3 },
   { view: 'settings', label: 'Settings', icon: Settings },
 ] as const
 
@@ -30,15 +31,16 @@ export function BottomNav() {
               <button
                 onClick={() => setView(item.view)}
                 aria-current={active ? 'page' : undefined}
+                aria-label={item.label}
                 className={cn(
-                  'flex w-full flex-col items-center gap-1 px-2 py-3 text-[11px] font-medium transition-colors',
+                  'flex w-full flex-col items-center gap-0.5 px-1 py-2.5 text-[10px] font-medium transition-colors sm:gap-1 sm:px-2 sm:py-3 sm:text-[11px]',
                   active
                     ? 'text-accent-brand'
                     : 'text-muted-recall hover:text-primary-recall'
                 )}
               >
                 <Icon className="h-5 w-5" aria-hidden="true" />
-                <span>{item.label}</span>
+                <span className="hidden sm:inline">{item.label}</span>
               </button>
             </li>
           )

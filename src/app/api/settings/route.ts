@@ -10,6 +10,10 @@ const settingsSchema = z.object({
   dailyReviewLimit: z.number().int().min(1).max(1000).optional(),
   timezone: z.string().max(80).optional(),
   aiProcessingOptOut: z.boolean().optional(),
+  // Phase 2: reminders
+  reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
+  reminderEmailEnabled: z.boolean().optional(),
+  reminderEmail: z.string().email().nullable().optional(),
 })
 
 export async function GET() {

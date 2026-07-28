@@ -29,16 +29,20 @@ model User {
 }
 
 model Settings {
-  userId            String   @id
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  theme             String   @default("dark") // "dark" | "light"
-  reducedMotion     Boolean  @default(false)
-  dailyNewCardLimit Int      @default(20)
-  dailyReviewLimit  Int      @default(200)
-  timezone          String   @default("UTC")
-  aiProcessingOptOut Boolean @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  userId             String   @id
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme              String   @default("dark") // "dark" | "light"
+  reducedMotion      Boolean  @default(false)
+  dailyNewCardLimit  Int      @default(20)
+  dailyReviewLimit   Int      @default(200)
+  timezone           String   @default("UTC")
+  aiProcessingOptOut Boolean  @default(false)
+  // Phase 2: due-card reminders
+  reminderTime       String?  // "HH:MM" in user's timezone, null = disabled
+  reminderEmailEnabled Boolean @default(false)
+  reminderEmail      String?  // optional override email
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model Notebook {
@@ -75,6 +79,7 @@ model Note {
   summaries   Summary[]
   flashcards  Flashcard[]
   attachments Attachment[]
+  embeddings  Embedding[]
 
   @@index([userId])
   @@index([notebookId])
@@ -184,5 +189,23 @@ model Attachment {
   sizeBytes Int      @default(0)
   createdAt DateTime @default(now())
 
+  @@index([noteId])
+}
+
+// Phase 2: per-note TF-IDF vector for semantic search + related notes.
+// Stored as JSON array of [term, weight] pairs (sparse vector).
+// When a true embeddings API is available, swap the vector contents
+// without changing the API contract.
+model Embedding {
+  id        String   @id @default(cuid())
+  noteId    String
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  vector    String   // JSON-serialized sparse TF-IDF vector
+  terms     String   // JSON-serialized term list for quick intersection
+  algorithm String   @default("tfidf-v1")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([noteId])
   @@index([noteId])
 }

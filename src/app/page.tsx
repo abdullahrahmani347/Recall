@@ -14,6 +14,8 @@ import { CardEditor } from '@/components/app/card-editor'
 import { ReviewSession } from '@/components/app/review-session'
 import { SearchView } from '@/components/app/search-view'
 import { SettingsView } from '@/components/app/settings-view'
+import { AnalyticsView } from '@/components/app/analytics-view'
+import { ReminderBanner } from '@/components/app/reminder-banner'
 import { Loader2 } from 'lucide-react'
 
 export default function Home() {
@@ -53,12 +55,14 @@ export default function Home() {
   // APP SHELL ROUTES (with bottom nav)
   return (
     <div className="flex min-h-screen flex-col bg-canvas">
+      <ReminderBanner />
       <main id="main" className="flex-1">
         {view === 'home' && <HomeView />}
         {view === 'notes' && <NotesView />}
         {view === 'decks' && <DecksView />}
         {view === 'card-editor' && <CardEditor />}
         {view === 'search' && <SearchView />}
+        {view === 'analytics' && <AnalyticsView />}
         {view === 'settings' && <SettingsView />}
       </main>
       <BottomNav />

@@ -19,6 +19,8 @@ import {
   LogOut,
   Sparkles,
   Loader2,
+  Bell,
+  Package,
 } from 'lucide-react'
 import type { ApiSettings } from '@/lib/types'
 import { useTheme } from 'next-themes'
@@ -266,8 +268,8 @@ export function SettingsView() {
           <div>
             <Label className="text-sm">Opt out of AI processing</Label>
             <p className="text-xs text-muted-recall">
-              When enabled, the &quot;Summarize&quot; action is disabled. Your note content is
-              never sent to the LLM provider.
+              When enabled, the &quot;Summarize&quot; and &quot;Generate cards&quot; actions
+              are disabled. Your note content is never sent to the LLM provider.
             </p>
           </div>
           <Switch
@@ -275,6 +277,76 @@ export function SettingsView() {
             onCheckedChange={(v) => onChange({ aiProcessingOptOut: v })}
             aria-label="Opt out of AI processing"
           />
+        </div>
+      </Card>
+
+      {/* REMINDERS (Phase 2) */}
+      <Card className="mb-4 border-hairline bg-card-surface p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Bell className="h-4 w-4 text-accent-warm" aria-hidden="true" />
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-recall">
+            Reminders
+          </h2>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="reminder-time" className="text-sm">Daily reminder time</Label>
+            <p className="mb-2 text-xs text-muted-recall">
+              Show an in-app banner when you have due cards at this time. Leave blank to disable.
+            </p>
+            <div className="flex items-center gap-2">
+              <Input
+                id="reminder-time"
+                type="time"
+                value={local.reminderTime ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value || null
+                  onChange({ reminderTime: v })
+                }}
+                className="bg-void"
+              />
+              {local.reminderTime && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onChange({ reminderTime: null })}
+                  className="border border-hairline bg-void text-muted-recall"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <Label className="text-sm">Email reminders</Label>
+              <p className="text-xs text-muted-recall">
+                When enabled, you&apos;ll receive a daily email digest of due cards at your
+                reminder time. Requires an SMTP provider (Phase 2 — in-app banner is active now).
+              </p>
+            </div>
+            <Switch
+              checked={local.reminderEmailEnabled}
+              onCheckedChange={(v) => onChange({ reminderEmailEnabled: v })}
+              disabled={!local.reminderTime}
+              aria-label="Email reminders"
+            />
+          </div>
+
+          {local.reminderEmailEnabled && (
+            <div>
+              <Label htmlFor="reminder-email" className="text-sm">Reminder email (optional)</Label>
+              <Input
+                id="reminder-email"
+                type="email"
+                value={local.reminderEmail ?? ''}
+                onChange={(e) => onChange({ reminderEmail: e.target.value || null })}
+                placeholder={user?.email ?? 'you@example.com'}
+                className="mt-1 bg-void"
+              />
+            </div>
+          )}
         </div>
       </Card>
 
@@ -290,7 +362,7 @@ export function SettingsView() {
             <p className="mb-2 text-xs text-muted-recall">
               Download all your notes, tags, decks, and cards.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="ghost"
                 onClick={() => onExport('markdown')}
@@ -308,6 +380,15 @@ export function SettingsView() {
               >
                 <Download className="mr-1 h-3.5 w-3.5" />
                 JSON
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => onExport('apkg')}
+                className="border border-hairline bg-void"
+                size="sm"
+              >
+                <Package className="mr-1 h-3.5 w-3.5" />
+                Anki (.apkg)
               </Button>
             </div>
           </div>
@@ -380,7 +461,7 @@ export function SettingsView() {
       )}
 
       <p className="mt-8 text-center text-[10px] text-muted-recall">
-        Recall MVP · FSRS-4.5 scheduler · SSE streaming · WCAG 2.2 AA target
+        Recall · FSRS-4.5 scheduler · SSE streaming · TF-IDF semantic search · .apkg export
       </p>
     </div>
   )

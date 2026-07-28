@@ -27,6 +27,7 @@ type View =
   | 'review'
   | 'search'
   | 'settings'
+  | 'analytics'
 
 interface AppState {
   user: ApiUser | null

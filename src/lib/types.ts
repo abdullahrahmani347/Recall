@@ -102,6 +102,10 @@ export interface ApiSettings {
   dailyReviewLimit: number
   timezone: string
   aiProcessingOptOut: boolean
+  // Phase 2: reminders
+  reminderTime: string | null
+  reminderEmailEnabled: boolean
+  reminderEmail: string | null
 }
 
 export type Grade = 'again' | 'hard' | 'good' | 'easy'
@@ -109,4 +113,66 @@ export type Grade = 'again' | 'hard' | 'good' | 'easy'
 export interface ApiSearchResult {
   notes: ApiNote[]
   cards: ApiFlashcard[]
+}
+
+// Phase 2 types
+
+export interface SuggestedCard {
+  front: string
+  back: string
+}
+
+export interface SemanticSearchResult {
+  id: string
+  title: string
+  contentPlainText: string
+  updatedAt: string
+  score: number
+  tags: ApiTag[]
+}
+
+export interface RelatedNote {
+  id: string
+  title: string
+  contentPlainText: string
+  updatedAt: string
+  score: number
+  tags: ApiTag[]
+}
+
+export interface DayBucket {
+  date: string
+  reviewed: number
+  correct: number
+  again: number
+  newCards: number
+}
+
+export interface GradeDistribution {
+  again: number
+  hard: number
+  good: number
+  easy: number
+}
+
+export interface DeckStat {
+  id: string
+  name: string
+  color: string
+  totalCards: number
+  dueCards: number
+  matureCards: number
+  youngCards: number
+}
+
+export interface Analytics {
+  range: string
+  days: number
+  dailyBuckets: DayBucket[]
+  retentionRate: number
+  totalReviews: number
+  gradeDistribution: GradeDistribution
+  streak: number
+  avgResponseTimeMs: number
+  deckStats: DeckStat[]
 }

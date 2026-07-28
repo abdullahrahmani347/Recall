@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser } from '@/lib/api-helpers'
+import { buildApkg } from '@/lib/apkg'
 
 /**
  * GET /api/export?format=markdown|json
@@ -47,6 +48,29 @@ export async function GET(req: NextRequest) {
       headers: {
         'Content-Type': 'text/markdown; charset=utf-8',
         'Content-Disposition': 'attachment; filename="recall-export.md"',
+      },
+    })
+  }
+
+  if (format === 'apkg') {
+    // Anki .apkg export — each deck becomes an Anki deck.
+    if (cards.length === 0) {
+      return NextResponse.json(
+        { error: 'No flashcards to export. Create some cards first.' },
+        { status: 400 }
+      )
+    }
+    const apkgCards = cards.map((c) => ({
+      front: c.front,
+      back: c.back,
+      deckName: c.deck.name,
+    }))
+    const bytes = await buildApkg(apkgCards)
+    return new NextResponse(new Uint8Array(bytes), {
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': 'attachment; filename="recall-export.apkg"',
+        'Content-Length': String(bytes.length),
       },
     })
   }
