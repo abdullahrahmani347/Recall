@@ -8,17 +8,27 @@ import type { ApiUser } from '@/lib/types'
 
 export function useAuth() {
   const qc = useQueryClient()
-  const { user, setUser, view, setView } = useAppStore()
+  // Use selectors so the hook only re-renders when these specific values
+  // change — not on every store update (e.g. activeNoteId, activeDeckId).
+  // Without selectors, useAppStore() subscribes to the entire store and
+  // re-renders on every state change, which cascades with the autosave
+  // invalidation loop and makes the app appear stuck/loading.
+  const user = useAppStore((s) => s.user)
+  const setUser = useAppStore((s) => s.setUser)
+  const view = useAppStore((s) => s.view)
+  const setView = useAppStore((s) => s.setView)
 
   const { data, isLoading } = useQuery<{ user: ApiUser | null }>({
     queryKey: ['auth'],
     queryFn: () => api<{ user: ApiUser | null }>('/api/auth'),
     staleTime: 60_000,
+    retry: 1,
   })
 
-  // Sync server-side auth state → client store
+  // Sync server-side auth state → client store.
+  // Only call setUser when the value actually changed, to avoid loops.
   useEffect(() => {
-    if (data?.user && !user) {
+    if (data?.user && data.user.id !== user?.id) {
       setUser(data.user)
     } else if (data && data.user === null && user) {
       setUser(null)

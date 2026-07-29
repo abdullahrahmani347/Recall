@@ -14,7 +14,10 @@ const NAV = [
 ] as const
 
 export function BottomNav() {
-  const { view, setView } = useAppStore()
+  // Use selectors so the nav only re-renders when `view` changes, not on
+  // every store update (activeNoteId, activeDeckId, etc.).
+  const view = useAppStore((s) => s.view)
+  const setView = useAppStore((s) => s.setView)
 
   return (
     <nav

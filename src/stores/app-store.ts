@@ -67,8 +67,12 @@ export const useAppStore = create<AppState>()(
       onRehydrateStorage: () => (state) => {
         state?.setHydrated(true)
       },
+      // Only persist activeNoteId and activeDeckId — NOT view.
+      // Persisting `view` causes a hydration mismatch: the server renders
+      // with view='landing' but the client restores view='home' from
+      // localStorage, which breaks React hydration in the production build.
+      // The auth check in page.tsx sets the correct view after mount.
       partialize: (s) => ({
-        view: s.view,
         activeNoteId: s.activeNoteId,
         activeDeckId: s.activeDeckId,
       }),

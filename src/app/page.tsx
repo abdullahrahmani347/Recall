@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '@/stores/app-store'
 import { useAuth } from '@/hooks/use-auth'
@@ -21,31 +21,57 @@ import { ReminderBanner } from '@/components/app/reminder-banner'
 import { OnboardingFlow } from '@/components/app/onboarding-flow'
 import { Loader2 } from 'lucide-react'
 
+// Use a mounted flag to skip the server-rendered content and only render
+// the app after hydration. This avoids any hydration mismatch caused by
+// persisted store state, theme classes, or auth cookies.
 export default function Home() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    // Mark as mounted so we render the full app after hydration.
+    // This is the standard "mounted" pattern for avoiding hydration mismatches
+    // with persisted client state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true)
+  }, [])
+
   const { user, view, isLoading } = useAuth()
   const setView = useAppStore((s) => s.setView)
 
-  // Check onboarding status when user logs in. Use a query so React Query
-  // manages the fetch lifecycle — avoids setState-in-effect.
-  const { data: onboardingData } = useQuery({
+  // Check onboarding status when user logs in.
+  const { data: onboardingData, isLoading: onboardingLoading } = useQuery({
     queryKey: ['onboarding-check', user?.id],
     queryFn: () =>
       api<{ onboarding: { completed: boolean } | null }>('/api/onboarding'),
-    enabled: !!user,
+    enabled: !!user && mounted,
     staleTime: 60_000,
+    retry: 1,
   })
-  const needsOnboarding = !!user && !onboardingData?.onboarding?.completed && onboardingData !== undefined
+  const needsOnboarding =
+    !!user &&
+    !onboardingLoading &&
+    onboardingData !== undefined &&
+    !onboardingData?.onboarding?.completed
 
   // Redirect logic based on auth state
   useEffect(() => {
-    if (isLoading) return
+    if (!mounted || isLoading) return
     if (!user && view !== 'landing' && view !== 'auth') {
       setView('landing')
     }
     if (user && (view === 'landing' || view === 'auth')) {
       setView('home')
     }
-  }, [user, view, isLoading, setView])
+  }, [user, view, isLoading, setView, mounted])
+
+  // Before mount, render a minimal skeleton to avoid hydration mismatch.
+  // After mount, render the full app.
+  if (!mounted) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <Loader2 className="h-6 w-6 animate-spin text-accent-brand" aria-label="Loading" />
+      </div>
+    )
+  }
 
   // First-load splash — only show briefly while the auth query resolves
   if (isLoading && !user) {

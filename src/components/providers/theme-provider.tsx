@@ -10,6 +10,9 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       defaultTheme="dark"
       enableSystem={false}
       disableTransitionOnChange
+      // suppressHydrationWarning prevents React from bailing on hydration
+      // when next-themes injects the theme class before React mounts.
+      // The <html> tag already has suppressHydrationWarning in layout.tsx.
       {...props}
     >
       {children}

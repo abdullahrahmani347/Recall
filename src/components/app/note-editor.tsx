@@ -52,7 +52,11 @@ type EditorMode = 'edit' | 'preview' | 'split'
 
 export function NoteEditor() {
   const qc = useQueryClient()
-  const { activeNoteId, setView, openNote } = useAppStore()
+  // Use selectors to avoid re-rendering on every store change (e.g. when
+  // the autosave invalidates queries and triggers refetches).
+  const activeNoteId = useAppStore((s) => s.activeNoteId)
+  const setView = useAppStore((s) => s.setView)
+  const openNote = useAppStore((s) => s.openNote)
   const { user } = useAuth()
   const isNew = !activeNoteId
 
@@ -78,6 +82,20 @@ export function NoteEditor() {
   useEffect(() => {
     noteIdRef.current = noteId
   }, [noteId])
+
+  // Guard against concurrent saves. Without this, when the user types in a
+  // NEW note, the autosave timer fires, save() starts the async POST, but
+  // before it completes the user types more, dirty becomes true again,
+  // another timer fires, and save() runs again — noteIdRef.current is still
+  // null (first save hasn't completed), so it creates ANOTHER note. This
+  // caused dozens of duplicate notes from a single typing session.
+  const savingRef = useRef(false)
+  // Ref mirror of dirty so the save() finally block can check if the user
+  // typed more during the save, without depending on the stale closure value.
+  const dirtyRef = useRef(false)
+  useEffect(() => {
+    dirtyRef.current = dirty
+  }, [dirty])
 
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -171,12 +189,23 @@ export function NoteEditor() {
     broadcastNoteUpdateRef.current = broadcastNoteUpdate
   })
 
-  // Autosave (debounced 1.2s) — per §9 of the brief
+  // Autosave (debounced 1.2s) — per §9 of the brief.
+  // The savingRef guard prevents concurrent saves: if a save is in-flight
+  // (the async POST hasn't completed), subsequent save() calls return early.
+  // After the save completes, if dirty became true again during the save,
+  // we schedule another save to pick up the latest content.
+  //
+  // IMPORTANT: we check `!noteIdRef.current` instead of `isNew` because
+  // `isNew` is captured in this closure and stays true even after the first
+  // save creates the note and updates noteIdRef. Using the ref ensures
+  // subsequent saves take the update path, not the create path.
   const save = useCallback(async () => {
     if (!dirty) return
+    if (savingRef.current) return // A save is already in-flight — skip
     const currentNoteId = noteIdRef.current
+    savingRef.current = true // Set synchronously before any await
     try {
-      if (isNew || !currentNoteId) {
+      if (!currentNoteId) {
         // Only create if there's actual content
         if (!title && !body) {
           setDirty(false)
@@ -208,10 +237,16 @@ export function NoteEditor() {
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Save failed')
+    } finally {
+      savingRef.current = false
+      // If the user typed more while we were saving, schedule another save.
+      // save() will see noteIdRef.current is now set and take the update path.
+      if (dirtyRef.current) {
+        setTimeout(() => save(), 500)
+      }
     }
   }, [
     dirty,
-    isNew,
     title,
     body,
     selectedTagIds,
