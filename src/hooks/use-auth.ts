@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
 import { useAppStore } from '@/stores/app-store'
@@ -8,11 +8,6 @@ import type { ApiUser } from '@/lib/types'
 
 export function useAuth() {
   const qc = useQueryClient()
-  // Use selectors so the hook only re-renders when these specific values
-  // change — not on every store update (e.g. activeNoteId, activeDeckId).
-  // Without selectors, useAppStore() subscribes to the entire store and
-  // re-renders on every state change, which cascades with the autosave
-  // invalidation loop and makes the app appear stuck/loading.
   const user = useAppStore((s) => s.user)
   const setUser = useAppStore((s) => s.setUser)
   const view = useAppStore((s) => s.view)
@@ -27,6 +22,10 @@ export function useAuth() {
 
   // Sync server-side auth state → client store.
   // Only call setUser when the value actually changed, to avoid loops.
+  // NOTE: we do NOT call qc.clear() here — that would clear the auth query
+  // mid-fetch, causing a loading state that interrupts GSAP animations.
+  // Cache clearing happens only in the login/register/logout mutations
+  // where the user explicitly changes identity.
   useEffect(() => {
     if (data?.user && data.user.id !== user?.id) {
       setUser(data.user)
@@ -39,8 +38,11 @@ export function useAuth() {
     mutationFn: (body: { mode: 'login'; email: string; password: string }) =>
       api<{ user: ApiUser }>('/api/auth', { method: 'POST', body: JSON.stringify(body) }),
     onSuccess: (res) => {
+      // Clear ALL cached data from any previous session before setting
+      // the new user. This prevents user B from seeing user A's notes.
+      qc.clear()
       setUser(res.user)
-      qc.invalidateQueries({ queryKey: ['auth'] })
+      setView('home')
     },
   })
 
@@ -48,16 +50,18 @@ export function useAuth() {
     mutationFn: (body: { mode: 'register'; email: string; password: string; name?: string }) =>
       api<{ user: ApiUser }>('/api/auth', { method: 'POST', body: JSON.stringify(body) }),
     onSuccess: (res) => {
+      qc.clear()
       setUser(res.user)
-      qc.invalidateQueries({ queryKey: ['auth'] })
+      setView('home')
     },
   })
 
   const logoutMutation = useMutation({
     mutationFn: () => api('/api/auth/logout', { method: 'POST' }),
     onSuccess: () => {
-      setUser(null)
       qc.clear()
+      setUser(null)
+      setView('landing')
     },
   })
 
