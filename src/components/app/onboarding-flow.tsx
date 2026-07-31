@@ -112,14 +112,18 @@ export function OnboardingFlow() {
 
   const onFinish = async () => {
     try {
-      await saveMutation.mutateAsync({
+      const res = await saveMutation.mutateAsync({
         completed: true,
         studyGoal,
         experienceLevel,
         interests,
         dailyGoalMinutes,
       })
-      qc.invalidateQueries({ queryKey: ['onboarding'] })
+      // Update the cache directly so the page immediately hides the
+      // onboarding flow — no waiting for a refetch.
+      qc.setQueryData(['onboarding-check', user?.id], { onboarding: res.onboarding })
+      qc.setQueryData(['onboarding'], { onboarding: res.onboarding })
+      qc.invalidateQueries({ queryKey: ['onboarding-check'] })
       qc.invalidateQueries({ queryKey: ['auth'] })
       toast.success('Welcome to Recall!')
       setView('home')
@@ -130,11 +134,17 @@ export function OnboardingFlow() {
 
   const onSkip = async () => {
     try {
-      await saveMutation.mutateAsync({ completed: true })
-      qc.invalidateQueries({ queryKey: ['onboarding'] })
+      const res = await saveMutation.mutateAsync({ completed: true })
+      // Update the cache directly so the page immediately hides the
+      // onboarding flow — no waiting for a refetch.
+      qc.setQueryData(['onboarding-check', user?.id], { onboarding: res.onboarding })
+      qc.setQueryData(['onboarding'], { onboarding: res.onboarding })
+      qc.invalidateQueries({ queryKey: ['onboarding-check'] })
       qc.invalidateQueries({ queryKey: ['auth'] })
-    } catch {
-      // ignore
+    } catch (err) {
+      // If the save fails, show an error but still let the user into the app
+      // — they can complete onboarding later from Settings.
+      toast.error(err instanceof Error ? err.message : 'Failed to save preferences')
     }
     setView('home')
   }
