@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Hero3D } from './hero-3d'
+import { HeroBackground } from './hero-background'
 import { FloatingNav } from './floating-nav'
 import { ProductDemoPanel } from './product-demo-panel'
 import { CTADotButton } from './cta-dot-button'
@@ -101,7 +101,7 @@ export function LandingPage() {
         className="relative isolate overflow-hidden pt-32 sm:pt-36 lg:pt-40"
         aria-labelledby="hero-heading"
       >
-        <Hero3D visible={heroVisible} />
+        <HeroBackground visible={heroVisible} />
 
         <div className="mx-auto max-w-6xl px-6 pb-20 lg:pb-32">
           <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-8">
