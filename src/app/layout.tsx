@@ -33,13 +33,20 @@ export const metadata: Metadata = {
     "Capture notes, get AI summaries, turn them into flashcards, and review with spaced repetition. Mobile-first, offline-ready.",
   keywords: ["Recall", "study", "notes", "flashcards", "spaced repetition", "FSRS"],
   authors: [{ name: "Recall" }],
+  manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/logo.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/logo.svg", type: "image/svg+xml", sizes: "512x512" },
+    ],
+    apple: "/apple-touch-icon.svg",
+    shortcut: "/favicon.svg",
   },
   openGraph: {
     title: "Recall — Study, Notes & Flashcards",
     description: "Capture, summarize, and remember — mobile-first.",
     type: "website",
+    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "Recall — Study, Notes & Flashcards" }],
   },
 };
 

@@ -1,0 +1,55 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ogGrad" x1="0" y1="0" x2="1200" y2="630">
+      <stop offset="0%" stop-color="#34E7A8"/>
+      <stop offset="100%" stop-color="#FFB454"/>
+    </linearGradient>
+    <radialGradient id="ogBg" cx="50%" cy="0%" r="100%">
+      <stop offset="0%" stop-color="#34E7A8" stop-opacity="0.12"/>
+      <stop offset="50%" stop-color="#0F1115" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0F1115"/>
+  <rect width="1200" height="630" fill="url(#ogBg)"/>
+
+  <!-- Logo mark (large, centered-left) -->
+  <g transform="translate(100, 250)">
+    <rect width="120" height="120" rx="28" fill="url(#ogGrad)" fill-opacity="0.1"/>
+    <rect x="2" y="2" width="116" height="116" rx="26" stroke="url(#ogGrad)" stroke-width="2" stroke-opacity="0.3"/>
+    <circle cx="46" cy="60" r="24" stroke="url(#ogGrad)" stroke-width="6" fill="none"/>
+    <circle cx="74" cy="60" r="24" stroke="url(#ogGrad)" stroke-width="6" fill="none" stroke-opacity="0.65"/>
+    <circle cx="60" cy="60" r="9" fill="url(#ogGrad)"/>
+  </g>
+
+  <!-- Wordmark + tagline -->
+  <text x="260" y="300" font-family="'Space Grotesk', sans-serif" font-size="56" font-weight="700" fill="#F2F3F5" letter-spacing="-1.5">
+    Recall
+  </text>
+  <text x="260" y="345" font-family="'Inter', sans-serif" font-size="22" font-weight="400" fill="#8A8D94">
+    Study, Notes &amp; Flashcards
+  </text>
+
+  <!-- Headline -->
+  <text x="100" y="450" font-family="'Space Grotesk', sans-serif" font-size="48" font-weight="600" fill="#F2F3F5" letter-spacing="-1">
+    Remember what you learn.
+  </text>
+
+  <!-- Feature badges -->
+  <g transform="translate(100, 510)" font-family="'Inter', sans-serif" font-size="16" fill="#B4B7BD">
+    <rect x="0" y="0" width="180" height="36" rx="18" fill="#181B21" stroke="#252830"/>
+    <text x="90" y="23" text-anchor="middle">FSRS-spaced</text>
+
+    <rect x="200" y="0" width="160" height="36" rx="18" fill="#181B21" stroke="#252830"/>
+    <text x="280" y="23" text-anchor="middle">AI summaries</text>
+
+    <rect x="380" y="0" width="160" height="36" rx="18" fill="#181B21" stroke="#252830"/>
+    <text x="460" y="23" text-anchor="middle">Offline-ready</text>
+  </g>
+
+  <!-- Accent dot -->
+  <circle cx="1100" cy="80" r="6" fill="#34E7A8">
+    <animate attributeName="opacity" values="0.4;1;0.4" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+</svg>

@@ -1,0 +1,23 @@
+<svg width="200" height="48" viewBox="0 0 200 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="wordmarkGrad" x1="0" y1="0" x2="48" y2="48">
+      <stop offset="0%" stop-color="#34E7A8"/>
+      <stop offset="100%" stop-color="#FFB454"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Logo mark -->
+  <rect width="48" height="48" rx="12" fill="url(#wordmarkGrad)" fill-opacity="0.12"/>
+  <rect x="1" y="1" width="46" height="46" rx="11" stroke="url(#wordmarkGrad)" stroke-width="1" stroke-opacity="0.3"/>
+  <circle cx="18" cy="24" r="9" stroke="url(#wordmarkGrad)" stroke-width="2.5" fill="none"/>
+  <circle cx="30" cy="24" r="9" stroke="url(#wordmarkGrad)" stroke-width="2.5" fill="none" stroke-opacity="0.65"/>
+  <circle cx="24" cy="24" r="3.5" fill="url(#wordmarkGrad)">
+    <animate attributeName="r" values="3;4;3" dur="2.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.85;1;0.85" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Wordmark text -->
+  <text x="60" y="32" font-family="'Space Grotesk', 'Inter', sans-serif" font-size="22" font-weight="700" fill="currentColor" letter-spacing="-0.5">
+    Recall
+  </text>
+</svg>
