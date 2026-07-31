@@ -85,9 +85,28 @@ model Note {
   attachments Attachment[]
   embeddings  Embedding[]
   comments    Comment[]
+  linksFrom   NoteLink[] @relation("LinksFrom")
+  linksTo     NoteLink[] @relation("LinksTo")
 
   @@index([userId])
   @@index([notebookId])
+}
+
+// Tier 1: Bidirectional links between notes.
+// When note A contains [[B]], a NoteLink row is created with
+// fromNoteId=A, toNoteId=B. The backlinks for note B are all
+// NoteLink rows where toNoteId=B.
+model NoteLink {
+  id         String @id @default(cuid())
+  fromNoteId String
+  toNoteId   String
+  fromNote   Note   @relation("LinksFrom", fields: [fromNoteId], references: [id], onDelete: Cascade)
+  toNote     Note   @relation("LinksTo", fields: [toNoteId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([fromNoteId, toNoteId])
+  @@index([fromNoteId])
+  @@index([toNoteId])
 }
 
 model Tag {

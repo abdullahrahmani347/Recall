@@ -40,6 +40,7 @@ import { toast } from 'sonner'
 import { SummaryStream } from './summary-stream'
 import { GenerateCardsDialog } from './generate-cards-dialog'
 import { RelatedNotes } from './related-notes'
+import { Backlinks } from './backlinks'
 import { PresenceAvatars } from './presence-avatars'
 import { LiveCursors } from './live-cursors'
 import { CommentsSidebar } from './comments-sidebar'
@@ -659,7 +660,7 @@ export function NoteEditor() {
                 const col = pos - body.lastIndexOf('\n', pos - 1) - 1
                 if (line >= 0 && col >= 0) sendCursor(line, col)
               }}
-              placeholder={`Start writing… Markdown is welcome.\n\n# Heading\n- bullet\n**bold** _italic_\n\n\`\`\`\n// code block\n\`\`\`\n\n| Col A | Col B |\n| --- | --- |\n| 1 | 2 |`}
+              placeholder={`Start writing… Markdown is welcome.\n\n# Heading\n- bullet\n**bold** _italic_\n\nInline card:\nFSRS :: Free Spaced Repetition Scheduler\n\nWiki link:\nThis relates to [[Ebbinghaus]]`}
               className="min-h-[60vh] resize-none border-0 bg-transparent px-0 text-base leading-relaxed shadow-none focus-visible:ring-0"
               aria-label="Note body"
             />
@@ -699,6 +700,13 @@ export function NoteEditor() {
         {noteId && body.trim() && (
           <div className="mt-6">
             <RelatedNotes noteId={noteId} />
+          </div>
+        )}
+
+        {/* Backlinks (Tier 1) — notes that link to this one */}
+        {noteId && (
+          <div className="mt-4">
+            <Backlinks noteId={noteId} />
           </div>
         )}
       </main>

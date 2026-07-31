@@ -20,6 +20,8 @@ import { AnalyticsView } from '@/components/app/analytics-view'
 import { ReminderBanner } from '@/components/app/reminder-banner'
 import { OnboardingFlow } from '@/components/app/onboarding-flow'
 import { ViewTransition } from '@/components/app/view-transition'
+import { CommandPalette } from '@/components/app/command-palette'
+import { GraphView } from '@/components/app/graph-view'
 import { Loader2 } from 'lucide-react'
 
 // Use a mounted flag to skip the server-rendered content and only render
@@ -106,6 +108,7 @@ export default function Home() {
         <ViewTransition key={view}>
           {view === 'home' && <HomeView />}
           {view === 'notes' && <NotesView />}
+          {view === 'graph' && <GraphView />}
           {view === 'decks' && <DecksView />}
           {view === 'card-editor' && <CardEditor />}
           {view === 'search' && <SearchView />}
@@ -114,6 +117,7 @@ export default function Home() {
         </ViewTransition>
       </main>
       <BottomNav />
+      <CommandPalette />
     </div>
   )
 }

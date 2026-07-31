@@ -9,11 +9,13 @@ import {
   ChartIcon,
   SettingsIcon,
 } from '@/components/icons/recall-icons'
+import { Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const NAV = [
   { view: 'home', label: 'Home', icon: HomeIcon },
   { view: 'notes', label: 'Notes', icon: NotebookIcon },
+  { view: 'graph', label: 'Graph', icon: Share2 },
   { view: 'decks', label: 'Decks', icon: LayersIcon },
   { view: 'search', label: 'Search', icon: SearchIcon },
   { view: 'analytics', label: 'Stats', icon: ChartIcon },

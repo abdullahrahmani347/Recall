@@ -28,6 +28,7 @@ type View =
   | 'search'
   | 'settings'
   | 'analytics'
+  | 'graph'
 
 interface AppState {
   user: ApiUser | null

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, badRequest, notFound, markdownToPlainText } from '@/lib/api-helpers'
+import { extractInlineCards, extractLinks } from '@/lib/inline-parser'
 import { z } from 'zod'
 
 const updateNoteSchema = z.object({
@@ -110,6 +111,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     },
   })
 
+  // Tier 1: Sync inline cards and wiki links if content changed
+  if (data.contentMarkdown !== undefined) {
+    await syncInlineContent(id, user!.id, data.contentMarkdown)
+  }
+
   return NextResponse.json({ note })
 }
 
@@ -123,4 +129,83 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
   await db.note.delete({ where: { id } })
   return new NextResponse(null, { status: 204 })
+}
+
+/**
+ * Sync inline cards and wiki links — same logic as in POST /api/notes.
+ * Kept here to avoid a shared import that would complicate the route.
+ */
+async function syncInlineContent(noteId: string, userId: string, markdown: string) {
+  const cards = extractInlineCards(markdown)
+  const links = extractLinks(markdown)
+
+  // Sync inline cards
+  if (cards.length > 0) {
+    let deck = await db.deck.findFirst({
+      where: { userId, name: 'Inline Cards' },
+    })
+    if (!deck) {
+      deck = await db.deck.create({
+        data: { userId, name: 'Inline Cards', description: 'Auto-created from inline note syntax', color: '#34E7A8' },
+      })
+    }
+    await db.flashcard.deleteMany({
+      where: { deckId: deck.id, sourceNoteId: noteId },
+    })
+    // Create cards individually with scheduling state
+    for (const card of cards) {
+      const flashcard = await db.flashcard.create({
+        data: {
+          deckId: deck.id,
+          sourceNoteId: noteId,
+          cardType: 'basic',
+          front: card.front,
+          back: card.back,
+        },
+      })
+      await db.schedulingState.create({
+        data: { cardId: flashcard.id },
+      })
+    }
+  } else {
+    const inlineDeck = await db.deck.findFirst({
+      where: { userId, name: 'Inline Cards' },
+    })
+    if (inlineDeck) {
+      await db.flashcard.deleteMany({
+        where: { deckId: inlineDeck.id, sourceNoteId: noteId },
+      })
+    }
+  }
+
+  // Sync wiki links
+  await db.noteLink.deleteMany({ where: { fromNoteId: noteId } })
+
+  for (const link of links) {
+    let targetNote = await db.note.findFirst({
+      where: {
+        userId,
+        title: { equals: link.targetTitle },
+      },
+    })
+
+    if (!targetNote) {
+      targetNote = await db.note.create({
+        data: {
+          userId,
+          title: link.targetTitle,
+          contentMarkdown: '',
+          contentPlainText: '',
+        },
+      })
+    }
+
+    await db.noteLink.upsert({
+      where: {
+        fromNoteId_toNoteId: { fromNoteId: noteId, toNoteId: targetNote.id },
+      },
+      update: {},
+      create: { fromNoteId: noteId, toNoteId: targetNote.id },
+    })
+  }
 }
