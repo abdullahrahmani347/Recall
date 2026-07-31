@@ -239,7 +239,8 @@ export function ReviewSession() {
         )}
 
         <div
-          className="w-full rounded-3xl border border-hairline bg-card-surface p-8 shadow-lg sm:p-12"
+          key={card?.id}
+          className="w-full rounded-3xl border border-hairline bg-card-surface p-8 shadow-floating sm:p-12 animate-scale-in"
           role="region"
           aria-label="Flashcard"
         >
@@ -281,7 +282,7 @@ export function ReviewSession() {
                   <button
                     key={b.grade}
                     onClick={() => onGrade(b.grade)}
-                    className={`flex flex-col items-center gap-1 rounded-xl ${b.className} px-3 py-4 text-void transition active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white`}
+                    className={`flex flex-col items-center gap-1 rounded-xl ${b.className} px-3 py-4 text-void transition-spring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white press`}
                     aria-label={`${b.label} — ${b.hint} (key ${b.key})`}
                   >
                     <span className="text-sm font-semibold">{b.label}</span>

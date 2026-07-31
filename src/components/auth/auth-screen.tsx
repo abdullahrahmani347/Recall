@@ -5,8 +5,9 @@ import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Brain, ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2 } from 'lucide-react'
 import { useAppStore } from '@/stores/app-store'
+import { RecallLogo } from '@/components/icons/recall-icons'
 import { toast } from 'sonner'
 
 export function AuthScreen() {
@@ -37,7 +38,7 @@ export function AuthScreen() {
 
   return (
     <div className="relative flex min-h-screen flex-col bg-canvas text-foreground">
-      <div className="absolute inset-0 -z-10 hero-gradient-fallback" aria-hidden="true" />
+      <div className="absolute inset-0 -z-10 mesh-gradient" aria-hidden="true" />
 
       <header className="mx-auto flex w-full max-w-md items-center px-6 py-6">
         <button
@@ -53,7 +54,7 @@ export function AuthScreen() {
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-12">
         <div className="mb-8 flex flex-col items-center text-center">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent-brand text-void">
-            <Brain className="h-6 w-6" aria-hidden="true" />
+          <RecallLogo size={48} />
           </div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">
             {mode === 'login' ? 'Welcome back' : 'Create your account'}

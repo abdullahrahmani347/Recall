@@ -5,15 +5,13 @@ import { api } from '@/lib/api-client'
 import { useAppStore } from '@/stores/app-store'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Plus, ChevronRight } from 'lucide-react'
 import {
-  Flame,
-  Plus,
-  Sparkles,
-  Layers,
-  Notebook as NotebookIcon,
-  ChevronRight,
-  Clock,
-} from 'lucide-react'
+  FlameIcon,
+  NotebookIcon,
+  LayersIcon,
+  ClockIcon,
+} from '@/components/icons/recall-icons'
 import type { ApiNote, ApiDeck } from '@/lib/types'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -103,7 +101,7 @@ export function HomeView() {
               className="flex items-center gap-1.5 rounded-full border border-hairline bg-void px-3 py-1 text-sm text-accent-warm"
               title="Current review streak"
             >
-              <Flame className="h-4 w-4" aria-hidden="true" />
+              <FlameIcon size={18} aria-hidden="true" />
               <span className="tabular-nums">{streak}</span>
               <span className="text-muted-recall">day{streak === 1 ? '' : 's'}</span>
             </div>
@@ -126,7 +124,7 @@ export function HomeView() {
           className="flex items-center gap-3 rounded-xl border border-hairline bg-card-surface p-4 text-left transition hover:border-accent-brand/50"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-brand/10 text-accent-brand">
-            <NotebookIcon className="h-4 w-4" aria-hidden="true" />
+            <NotebookIcon size={18} aria-hidden="true" />
           </div>
           <div>
             <p className="text-sm font-medium">New note</p>
@@ -138,7 +136,7 @@ export function HomeView() {
           className="flex items-center gap-3 rounded-xl border border-hairline bg-card-surface p-4 text-left transition hover:border-accent-brand/50"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-brand/10 text-accent-brand">
-            <Layers className="h-4 w-4" aria-hidden="true" />
+            <LayersIcon size={18} aria-hidden="true" />
           </div>
           <div>
             <p className="text-sm font-medium">Flashcards</p>
@@ -169,7 +167,7 @@ export function HomeView() {
 
         {recentNotes.length === 0 ? (
           <Card className="border border-dashed border-hairline bg-card-surface/50 p-8 text-center">
-            <Sparkles className="mx-auto mb-3 h-8 w-8 text-muted-recall" aria-hidden="true" />
+            <NotebookIcon size={28} className="mx-auto mb-3 text-muted-recall" aria-hidden="true" />
             <p className="font-medium">Your first note is one tap away</p>
             <p className="mt-1 text-sm text-secondary-recall">
               Capture a lecture, a meeting, a chapter — then summarize it and turn it into cards.
@@ -199,7 +197,7 @@ export function HomeView() {
                     </p>
                   </div>
                   <div className="ml-3 flex shrink-0 items-center gap-2 text-xs text-muted-recall">
-                    <Clock className="h-3 w-3" aria-hidden="true" />
+                    <ClockIcon size={14} aria-hidden="true" />
                     {formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}
                   </div>
                 </button>

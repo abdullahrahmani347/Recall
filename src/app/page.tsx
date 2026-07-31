@@ -19,6 +19,7 @@ import { SettingsView } from '@/components/app/settings-view'
 import { AnalyticsView } from '@/components/app/analytics-view'
 import { ReminderBanner } from '@/components/app/reminder-banner'
 import { OnboardingFlow } from '@/components/app/onboarding-flow'
+import { ViewTransition } from '@/components/app/view-transition'
 import { Loader2 } from 'lucide-react'
 
 // Use a mounted flag to skip the server-rendered content and only render
@@ -102,13 +103,15 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-canvas">
       <ReminderBanner />
       <main id="main" className="flex-1">
-        {view === 'home' && <HomeView />}
-        {view === 'notes' && <NotesView />}
-        {view === 'decks' && <DecksView />}
-        {view === 'card-editor' && <CardEditor />}
-        {view === 'search' && <SearchView />}
-        {view === 'analytics' && <AnalyticsView />}
-        {view === 'settings' && <SettingsView />}
+        <ViewTransition key={view}>
+          {view === 'home' && <HomeView />}
+          {view === 'notes' && <NotesView />}
+          {view === 'decks' && <DecksView />}
+          {view === 'card-editor' && <CardEditor />}
+          {view === 'search' && <SearchView />}
+          {view === 'analytics' && <AnalyticsView />}
+          {view === 'settings' && <SettingsView />}
+        </ViewTransition>
       </main>
       <BottomNav />
     </div>
