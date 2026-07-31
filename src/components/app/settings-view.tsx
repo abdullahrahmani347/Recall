@@ -128,16 +128,16 @@ export function SettingsView() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-8 pt-6 sm:px-6">
-      <header className="mb-6">
-        <p className="text-xs uppercase tracking-wider text-muted-recall">Account</p>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-secondary-recall">{user?.email}</p>
+    <div className="mx-auto max-w-3xl px-4 pb-8 pt-6 sm:px-6 sm:pt-8">
+      <header className="mb-6 animate-fade-in-up">
+        <p className="text-xs font-medium uppercase tracking-widest text-muted-recall">Account</p>
+        <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight sm:text-3xl">Settings</h1>
+        <p className="mt-1.5 text-sm text-secondary-recall">{user?.email}</p>
       </header>
 
       {/* APPEARANCE */}
       <Card className="mb-4 border-hairline bg-card-surface p-5">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-recall">
+        <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-recall">
           Appearance
         </h2>
 
@@ -195,7 +195,7 @@ export function SettingsView() {
 
       {/* STUDY */}
       <Card className="mb-4 border-hairline bg-card-surface p-5">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-recall">
+        <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-recall">
           Study
         </h2>
 
@@ -260,7 +260,7 @@ export function SettingsView() {
       <Card className="mb-4 border-hairline bg-card-surface p-5">
         <div className="mb-4 flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-accent-brand" aria-hidden="true" />
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-recall">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-recall">
             AI & Privacy
           </h2>
         </div>
@@ -284,7 +284,7 @@ export function SettingsView() {
       <Card className="mb-4 border-hairline bg-card-surface p-5">
         <div className="mb-4 flex items-center gap-2">
           <Bell className="h-4 w-4 text-accent-warm" aria-hidden="true" />
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-recall">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-recall">
             Reminders
           </h2>
         </div>
@@ -352,7 +352,7 @@ export function SettingsView() {
 
       {/* DATA */}
       <Card className="mb-4 border-hairline bg-card-surface p-5">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-recall">
+        <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-recall">
           Data
         </h2>
 
@@ -439,7 +439,7 @@ export function SettingsView() {
 
       {/* ACCOUNT */}
       <Card className="border-hairline bg-card-surface p-5">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-recall">
+        <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-recall">
           Account
         </h2>
         <Button

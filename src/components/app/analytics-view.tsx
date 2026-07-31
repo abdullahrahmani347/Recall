@@ -82,19 +82,19 @@ export function AnalyticsView() {
   const avgResponseSec = Math.round(data.avgResponseTimeMs / 1000)
 
   return (
-    <div className="mx-auto max-w-4xl px-4 pb-8 pt-6 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 pb-8 pt-6 sm:px-6 sm:pt-8">
       {/* HEADER */}
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-4 animate-fade-in-up">
         <div>
-          <p className="text-xs uppercase tracking-wider text-muted-recall">Insights</p>
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Analytics</h1>
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-recall">Insights</p>
+          <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight sm:text-3xl">Analytics</h1>
         </div>
-        <div className="flex gap-1 rounded-lg border border-hairline bg-card-surface p-1">
+        <div className="flex gap-1 rounded-xl border border-hairline bg-card-surface p-1">
           {RANGES.map((r) => (
             <button
               key={r.value}
               onClick={() => setRange(r.value)}
-              className={`rounded-md px-3 py-1 text-xs font-medium transition ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-smooth press ${
                 range === r.value
                   ? 'bg-accent-brand text-void'
                   : 'text-secondary-recall hover:text-primary-recall'
@@ -108,34 +108,10 @@ export function AnalyticsView() {
 
       {/* TOP STATS */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard
-          icon={TrendingUp}
-          label="Retention"
-          value={`${retentionPct}%`}
-          sub="correct / total"
-          color="text-accent-brand"
-        />
-        <StatCard
-          icon={Flame}
-          label="Streak"
-          value={`${data.streak}`}
-          sub={`day${data.streak === 1 ? '' : 's'}`}
-          color="text-accent-warm"
-        />
-        <StatCard
-          icon={Clock}
-          label="Reviews"
-          value={`${data.totalReviews}`}
-          sub={`in ${data.days} days`}
-          color="text-grade-easy"
-        />
-        <StatCard
-          icon={Target}
-          label="Avg time"
-          value={avgResponseSec > 0 ? `${avgResponseSec}s` : '—'}
-          sub="per card"
-          color="text-grade-hard"
-        />
+        <StatCard icon={TrendingUp} label="Retention" value={`${retentionPct}%`} sub="correct / total" color="text-accent-brand" className="animate-fade-in-up stagger-1" />
+        <StatCard icon={Flame} label="Streak" value={`${data.streak}`} sub={`day${data.streak === 1 ? '' : 's'}`} color="text-accent-warm" className="animate-fade-in-up stagger-2" />
+        <StatCard icon={Clock} label="Reviews" value={`${data.totalReviews}`} sub={`in ${data.days} days`} color="text-grade-easy" className="animate-fade-in-up stagger-3" />
+        <StatCard icon={Target} label="Avg time" value={avgResponseSec > 0 ? `${avgResponseSec}s` : '—'} sub="per card" color="text-grade-hard" className="animate-fade-in-up stagger-4" />
       </div>
 
       {/* DAILY REVIEWS CHART */}
@@ -304,17 +280,19 @@ function StatCard({
   value,
   sub,
   color,
+  className = '',
 }: {
   icon: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
   label: string
   value: string
   sub: string
   color: string
+  className?: string
 }) {
   return (
-    <Card className="border-hairline bg-card-surface p-4">
+    <Card className={`border-hairline bg-card-surface p-4 card-lift ${className}`}>
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider text-muted-recall">{label}</span>
+        <span className="text-xs font-medium uppercase tracking-widest text-muted-recall">{label}</span>
         <Icon className={`h-3.5 w-3.5 ${color}`} aria-hidden="true" />
       </div>
       <p className="font-display text-2xl font-semibold tabular-nums">{value}</p>
