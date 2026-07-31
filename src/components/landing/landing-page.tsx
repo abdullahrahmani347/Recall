@@ -6,57 +6,26 @@ import { FloatingNav } from './floating-nav'
 import { ProductDemoPanel } from './product-demo-panel'
 import { CTADotButton } from './cta-dot-button'
 import { useAppStore } from '@/stores/app-store'
-import { Button } from '@/components/ui/button'
-import {
-  SparklesIcon,
-  NotebookIcon,
-  FlashcardIcon,
-  BrainIcon,
-  ClockIcon,
-  LayersIcon,
-} from '@/components/icons/recall-icons'
+import { ArrowRight, ArrowDown } from 'lucide-react'
 
-const FEATURES = [
-  {
-    icon: NotebookIcon,
-    title: 'Capture without friction',
-    body: 'Open the app, type. Autosave keeps your draft. Markdown is welcome — no fighting a rich-text toolbar on a phone keyboard.',
-  },
-  {
-    icon: SparklesIcon,
-    title: 'Summaries that stream in',
-    body: 'Hit summarize and watch a tight bullet-point summary appear token-by-token. Your source note is never overwritten.',
-  },
-  {
-    icon: FlashcardIcon,
-    title: 'FSRS-spaced review',
-    body: 'Turn notes into flashcards. The scheduler uses FSRS, the open-source algorithm that benchmarks better than the classic SM-2.',
-  },
-]
-
-const STATS = [
-  { value: 'FSRS-4.5', label: 'Scheduler' },
-  { value: 'WCAG 2.2', label: 'AA target' },
-  { value: '< 60ms', label: 'API latency' },
-  { value: '100%', label: 'Offline-ready' },
-]
-
-const HIGHLIGHTS = [
-  { icon: BrainIcon, title: 'AI-powered', body: 'Streaming summaries + flashcard generation' },
-  { icon: ClockIcon, title: 'FSRS-spaced', body: 'Scientific scheduling, not random intervals' },
-  { icon: NotebookIcon, title: 'Offline-first', body: 'Works without a connection after first load' },
-  { icon: LayersIcon, title: 'Export-ready', body: 'Markdown, JSON, or Anki (.apkg) format' },
-]
-
+/**
+ * LandingPage — editorial, asymmetric, typographic.
+ *
+ * Design principles:
+ * - Asymmetric composition (7/5 grid, not 50/50)
+ * - Typography as the primary design element (mixed sizes, weights, italics)
+ * - One large product demo, not simplified mocks
+ * - Storytelling sections (capture → summarize → review) as a visual flow
+ * - Opinionated, specific copy — no generic SaaS language
+ * - Density variation: tight hero, airy features, dense stat moment
+ * - Green used surgically as emphasis, not everywhere
+ */
 export function LandingPage() {
   const setView = useAppStore((s) => s.setView)
   const heroRef = useRef<HTMLDivElement>(null)
-  const featureRefs = useRef<(HTMLDivElement | null)[]>([])
-  const statsRef = useRef<HTMLDivElement>(null)
-  const ctaRef = useRef<HTMLDivElement>(null)
+  const flowRef = useRef<HTMLDivElement>(null)
   const [heroVisible, setHeroVisible] = useState(false)
 
-  // Reveal hero only when it's intersecting — defer 3D load until after LCP
   useEffect(() => {
     if (!heroRef.current) return
     const io = new IntersectionObserver(
@@ -68,320 +37,261 @@ export function LandingPage() {
           }
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.05 }
     )
     io.observe(heroRef.current)
     return () => io.disconnect()
   }, [])
 
-  // GSAP entrance + scroll reveals
   useEffect(() => {
     const reduceMotion =
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
     if (reduceMotion) return
 
     let ctx: { revert: () => void } | undefined
-    import('gsap')
-      .then(({ gsap }) => {
-        import('gsap/ScrollTrigger').then(({ ScrollTrigger }) => {
-          gsap.registerPlugin(ScrollTrigger)
+    import('gsap').then(({ gsap }) => {
+      import('gsap/ScrollTrigger').then(({ ScrollTrigger }) => {
+        gsap.registerPlugin(ScrollTrigger)
+        ctx = gsap.context(() => {
+          // Hero entrance
+          gsap.from('[data-hero-eyebrow]', { opacity: 0, y: 8, duration: 0.5, delay: 0.2, ease: 'power2.out' })
+          gsap.from('[data-hero-line-1]', { opacity: 0, y: 24, duration: 0.7, delay: 0.3, ease: 'power3.out' })
+          gsap.from('[data-hero-line-2]', { opacity: 0, y: 24, duration: 0.7, delay: 0.45, ease: 'power3.out' })
+          gsap.from('[data-hero-sub]', { opacity: 0, y: 12, duration: 0.6, delay: 0.6, ease: 'power2.out' })
+          gsap.from('[data-hero-cta]', { opacity: 0, y: 16, duration: 0.6, delay: 0.8, ease: 'power2.out' })
+          gsap.from('[data-hero-demo]', { opacity: 0, y: 30, duration: 0.9, delay: 0.4, ease: 'power3.out' })
 
-          ctx = gsap.context(() => {
-            // Hero entrance
-            const words = heroRef.current?.querySelectorAll('[data-hero-word]')
-            if (words && words.length) {
-              gsap.from(words, {
-                y: 28,
-                opacity: 0,
-                duration: 0.8,
-                stagger: 0.05,
-                ease: 'power3.out',
-                delay: 0.3,
-              })
-              gsap.from('[data-hero-sub]', {
-                opacity: 0,
-                y: 12,
-                duration: 0.6,
-                delay: 0.6,
-                ease: 'power2.out',
-              })
-              gsap.from('[data-hero-cta]', {
-                opacity: 0,
-                y: 16,
-                duration: 0.6,
-                delay: 0.8,
-                ease: 'power2.out',
-              })
-              gsap.from('[data-hero-badge]', {
-                opacity: 0,
-                y: 10,
-                duration: 0.5,
-                delay: 0.2,
-                ease: 'power2.out',
-              })
-              gsap.from('[data-hero-demo]', {
-                opacity: 0,
-                y: 24,
-                duration: 0.8,
-                delay: 0.5,
-                ease: 'power3.out',
-              })
-            }
-
-            // Stats count-up on scroll
-            if (statsRef.current) {
-              gsap.from(statsRef.current.querySelectorAll('[data-stat]'), {
-                opacity: 0,
-                y: 16,
-                duration: 0.5,
-                stagger: 0.1,
-                ease: 'power2.out',
-                scrollTrigger: {
-                  trigger: statsRef.current,
-                  start: 'top 85%',
-                  once: true,
-                },
-              })
-            }
-
-            // Feature cards
-            featureRefs.current.forEach((el, i) => {
-              if (!el) return
-              gsap.from(el, {
-                opacity: 0,
-                y: 20,
-                duration: 0.6,
-                ease: 'power2.out',
-                scrollTrigger: {
-                  trigger: el,
-                  start: 'top 85%',
-                  once: true,
-                },
-                delay: i * 0.08,
-              })
+          // Flow section
+          if (flowRef.current) {
+            gsap.from(flowRef.current.querySelectorAll('[data-flow-step]'), {
+              opacity: 0,
+              y: 30,
+              duration: 0.7,
+              stagger: 0.15,
+              ease: 'power2.out',
+              scrollTrigger: { trigger: flowRef.current, start: 'top 75%', once: true },
             })
+          }
 
-            // CTA section
-            if (ctaRef.current) {
-              gsap.from(ctaRef.current.querySelectorAll('[data-cta]'), {
-                opacity: 0,
-                y: 24,
-                duration: 0.7,
-                stagger: 0.12,
-                ease: 'power2.out',
-                scrollTrigger: {
-                  trigger: ctaRef.current,
-                  start: 'top 80%',
-                  once: true,
-                },
-              })
-            }
-          }, heroRef)
-        })
+          // Stat moment
+          gsap.from('[data-big-stat]', {
+            opacity: 0,
+            scale: 0.95,
+            duration: 0.8,
+            ease: 'power2.out',
+            scrollTrigger: { trigger: '[data-big-stat]', start: 'top 80%', once: true },
+          })
+        }, heroRef)
       })
-      .catch(() => {})
-
-    return () => {
-      ctx?.revert()
-    }
+    }).catch(() => {})
+    return () => { ctx?.revert() }
   }, [])
 
   return (
     <div className="relative min-h-screen bg-canvas text-foreground">
       <a href="#main" className="skip-link">Skip to content</a>
-
-      {/* FLOATING NAV */}
       <FloatingNav />
 
-      {/* HERO — split-screen */}
+      {/* ============================================================
+          HERO — asymmetric 7/5 split, editorial typography
+          ============================================================ */}
       <section
         ref={heroRef}
-        className="relative isolate overflow-hidden pt-28 sm:pt-32"
+        className="relative isolate overflow-hidden pt-32 sm:pt-36 lg:pt-40"
         aria-labelledby="hero-heading"
       >
         <Hero3D visible={heroVisible} />
 
-        <div className="mx-auto max-w-6xl px-6 pb-20 lg:pb-28">
-          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
-            {/* LEFT — copy */}
-            <div className="max-w-xl">
-              {/* Badge */}
-              <div
-                data-hero-badge
-                className="mb-6 inline-flex items-center gap-2 rounded-full border border-hairline glass px-3 py-1.5 text-xs text-secondary-recall"
+        <div className="mx-auto max-w-6xl px-6 pb-20 lg:pb-32">
+          <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-8">
+            {/* LEFT — 7 columns */}
+            <div className="lg:col-span-7">
+              {/* Eyebrow */}
+              <p
+                data-hero-eyebrow
+                className="mb-6 text-xs font-medium uppercase tracking-widest text-muted-recall"
               >
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-brand opacity-60" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-accent-brand" />
-                </span>
-                Spaced repetition · AI summaries · Mobile-first
-              </div>
+                For readers who want to remember
+              </p>
 
-              {/* Headline */}
+              {/* Editorial headline — mixed sizes, italic accent, green highlight */}
               <h1
                 id="hero-heading"
-                className="font-display text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl"
+                className="font-display text-[2.75rem] font-bold leading-[1.02] tracking-tight sm:text-6xl lg:text-[5rem]"
               >
-                {'Remember what you learn.'.split(' ').map((w, i) => (
-                  <span key={i} data-hero-word className="inline-block">
-                    {w}&nbsp;
-                  </span>
-                ))}
+                <span data-hero-line-1 className="block">
+                  Read it once.
+                </span>
+                <span data-hero-line-2 className="block">
+                 {' '}
+                  <span className="italic font-medium text-accent-brand">
+                    Remember
+                  </span>{' '}
+                  it forever.
+                </span>
               </h1>
 
               {/* Subheadline */}
               <p
                 data-hero-sub
-                className="mt-6 max-w-lg text-pretty text-lg text-secondary-recall sm:text-xl"
+                className="mt-8 max-w-md text-pretty text-lg leading-relaxed text-secondary-recall"
               >
-                Capture notes, get a streaming AI summary, turn highlights into
-                flashcards, and review on the schedule that actually sticks.
+                Recall turns your notes into AI summaries and FSRS-spaced
+                flashcards — so the things you read today are still in your head
+                next month.
               </p>
 
-              {/* CTA row */}
+              {/* CTA */}
               <div data-hero-cta className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <CTADotButton
-                  size="lg"
-                  onClick={() => setView('auth')}
-                >
+                <CTADotButton size="lg" onClick={() => setView('auth')}>
                   Start studying free
                 </CTADotButton>
-                <Button
-                  size="lg"
-                  variant="ghost"
+                <button
                   onClick={() => setView('auth')}
-                  className="border border-hairline glass press"
+                  className="group inline-flex items-center gap-1 text-sm font-medium text-secondary-recall transition-smooth hover:text-primary-recall"
                 >
                   I already have an account
-                </Button>
+                  <ArrowRight className="h-3.5 w-3.5 transition-smooth group-hover:translate-x-0.5" />
+                </button>
               </div>
 
-              {/* Micro-copy */}
-              <p data-hero-sub className="mt-5 text-xs text-muted-recall">
-                No card required. Email + password or Google (Phase 2).
-              </p>
+              {/* Social proof — minimal, specific */}
+              <div data-hero-sub className="mt-10 flex items-center gap-4 text-xs text-muted-recall">
+                <span>No card required</span>
+                <span className="h-3 w-px bg-border-hairline" />
+                <span>Works offline</span>
+                <span className="h-3 w-px bg-border-hairline" />
+                <span>Open-source scheduler</span>
+              </div>
             </div>
 
-            {/* RIGHT — product demo panel */}
-            <div data-hero-demo className="lg:pl-4">
+            {/* RIGHT — 5 columns, demo panel */}
+            <div data-hero-demo className="lg:col-span-5">
               <ProductDemoPanel />
             </div>
           </div>
         </div>
       </section>
 
-      {/* STATS BAR */}
-      <div ref={statsRef} className="border-y border-hairline bg-card-surface/30">
-        <div className="mx-auto max-w-4xl px-6 py-10">
-          <p className="mb-6 text-center text-xs font-medium uppercase tracking-widest text-muted-recall">
-            Built on open standards
-          </p>
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-            {STATS.map((stat) => (
-              <div
-                key={stat.label}
-                data-stat
-                className="flex flex-col items-center text-center"
-              >
-                <p className="font-display text-2xl font-semibold text-accent-brand sm:text-3xl">
-                  {stat.value}
+      {/* ============================================================
+          THE LOOP — visual flow: capture → summarize → review
+          ============================================================ */}
+      <section ref={flowRef} className="border-t border-hairline bg-void py-20 sm:py-28">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mb-16 max-w-2xl">
+            <p className="text-xs font-medium uppercase tracking-widest text-muted-recall">
+              The loop
+            </p>
+            <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+              Three steps. One habit.
+            </h2>
+            <p className="mt-3 text-secondary-recall">
+              Most study apps are just flashcard decks. Recall is the full loop —
+              from the moment you read something to the moment it&apos;s locked in.
+            </p>
+          </div>
+
+          {/* Flow steps — horizontal on desktop, vertical on mobile */}
+          <div className="grid gap-6 sm:grid-cols-3 sm:gap-4">
+            {/* Step 1 */}
+            <div data-flow-step className="relative">
+              <div className="rounded-2xl border border-hairline bg-card-surface p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <span className="font-mono text-xs text-accent-brand">01</span>
+                  <span className="h-px flex-1 bg-border-hairline" />
+                </div>
+                <h3 className="font-display text-lg font-semibold">Capture</h3>
+                <p className="mt-2 text-sm leading-relaxed text-secondary-recall">
+                  Write a note in markdown. Autosave keeps your draft. No toolbar
+                  fighting for thumb space.
                 </p>
-                <p className="mt-1.5 text-xs text-muted-recall">{stat.label}</p>
               </div>
-            ))}
+              {/* Arrow connector */}
+              <div className="absolute -right-2 top-1/2 hidden -translate-y-1/2 sm:block">
+                <ArrowRight className="h-4 w-4 text-border-hairline" />
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div data-flow-step className="relative">
+              <div className="rounded-2xl border border-hairline bg-card-surface p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <span className="font-mono text-xs text-accent-brand">02</span>
+                  <span className="h-px flex-1 bg-border-hairline" />
+                </div>
+                <h3 className="font-display text-lg font-semibold">Summarize</h3>
+                <p className="mt-2 text-sm leading-relaxed text-secondary-recall">
+                  One tap. A tight summary streams in via SSE — token by token,
+                  not after a 10-second spinner.
+                </p>
+              </div>
+              <div className="absolute -right-2 top-1/2 hidden -translate-y-1/2 sm:block">
+                <ArrowRight className="h-4 w-4 text-border-hairline" />
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div data-flow-step>
+              <div className="rounded-2xl border border-hairline bg-card-surface p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <span className="font-mono text-xs text-accent-brand">03</span>
+                  <span className="h-px flex-1 bg-border-hairline" />
+                </div>
+                <h3 className="font-display text-lg font-semibold">Review</h3>
+                <p className="mt-2 text-sm leading-relaxed text-secondary-recall">
+                  Turn highlights into cards. FSRS-4.5 schedules each one for the
+                  exact moment you&apos;re about to forget.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* FEATURES */}
-      <main
-        id="main"
-        className="mx-auto max-w-6xl px-6 pb-24 pt-20 sm:pt-24"
-      >
-        {/* Section heading */}
-        <div id="features" className="mb-12 max-w-2xl">
-          <p className="text-xs font-medium uppercase tracking-widest text-muted-recall">
-            Features
+      {/* ============================================================
+          BIG STAT MOMENT — one number, no fluff
+          ============================================================ */}
+      <section className="py-24 sm:py-32">
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <p
+            data-big-stat
+            className="font-display text-6xl font-bold tracking-tight text-accent-brand sm:text-8xl lg:text-9xl"
+          >
+            2.3×
           </p>
-          <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Built for the way you actually study.
+          <p className="mt-6 max-w-md mx-auto text-lg text-secondary-recall">
+            better retention than cramming, according to the spacing effect
+            research that FSRS is built on.
+          </p>
+          <p className="mt-3 text-xs text-muted-recall">
+            Ebbinghaus, 1885 — still right.
+          </p>
+        </div>
+      </section>
+
+      {/* ============================================================
+          CLOSING CTA — quiet, confident
+          ============================================================ */}
+      <section className="border-t border-hairline py-20 sm:py-24">
+        <div className="mx-auto max-w-2xl px-6 text-center">
+          <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+            Stop re-reading. Start remembering.
           </h2>
-          <p className="mt-3 text-secondary-recall">
-            Three things that make Recall different from your notes app.
+          <p className="mt-4 text-secondary-recall">
+            It takes 30 seconds to create an account and write your first note.
+            The summary and flashcards come free.
+          </p>
+          <div className="mt-8 flex justify-center">
+            <CTADotButton size="lg" onClick={() => setView('auth')}>
+              Get started
+            </CTADotButton>
+          </div>
+          <p className="mt-4 text-xs text-muted-recall">
+            Free during MVP. Your notes never leave your account.
           </p>
         </div>
-
-        {/* Feature cards */}
-        <div className="grid gap-5 sm:grid-cols-3">
-          {FEATURES.map((f, i) => {
-            const Icon = f.icon
-            return (
-              <div
-                key={f.title}
-                ref={(el) => { featureRefs.current[i] = el }}
-                className="group rounded-2xl border border-hairline bg-card-surface p-6 card-lift"
-              >
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-accent-brand-dim text-accent-brand transition-smooth group-hover:scale-110">
-                  <Icon size={28} animated />
-                </div>
-                <h3 className="mb-2 font-display text-lg font-semibold">{f.title}</h3>
-                <p className="text-sm leading-relaxed text-secondary-recall">{f.body}</p>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Feature highlights grid */}
-        <div id="how-it-works" className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {HIGHLIGHTS.map((item, i) => {
-            const Icon = item.icon
-            return (
-              <div
-                key={item.title}
-                ref={(el) => { featureRefs.current[i + 3] = el }}
-                className="flex items-start gap-3 rounded-xl border border-hairline bg-card-surface p-4 card-lift"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-brand-dim text-accent-brand">
-                  <Icon size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">{item.title}</p>
-                  <p className="mt-0.5 text-xs text-muted-recall">{item.body}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* SECONDARY CTA */}
-        <section ref={ctaRef} className="mt-24 overflow-hidden rounded-3xl border border-hairline bg-void p-8 sm:p-12 lg:p-16">
-          <div className="grid items-center gap-8 sm:grid-cols-2">
-            <div data-cta>
-              <h2 className="font-display text-2xl font-semibold sm:text-3xl lg:text-4xl">
-                A memory tool that gets out of your way.
-              </h2>
-              <p className="mt-4 text-secondary-recall">
-                Recall is mobile-first, dark by default, and works offline after the first
-                load. Designed for one-handed study sessions on the bus, in the queue, or
-                at 2am before an exam.
-              </p>
-            </div>
-            <div data-cta className="flex flex-col gap-3 sm:items-end">
-              <CTADotButton
-                size="lg"
-                onClick={() => setView('auth')}
-              >
-                Create your first note
-              </CTADotButton>
-              <span className="text-xs text-muted-recall">
-                Free during MVP. Your notes never leave your account.
-              </span>
-            </div>
-          </div>
-        </section>
-      </main>
+      </section>
 
       {/* FOOTER */}
       <footer className="border-t border-hairline">
@@ -390,7 +300,7 @@ export function LandingPage() {
             <span className="font-display font-semibold text-primary-recall">Recall</span>
           </div>
           <p className="text-xs text-muted-recall">
-            FSRS-spaced repetition · SSE streaming · TF-IDF semantic search · .apkg export
+            FSRS-4.5 · SSE streaming · TF-IDF search · .apkg export
           </p>
         </div>
       </footer>
