@@ -12,6 +12,7 @@ import {
   LayersIcon,
   ClockIcon,
 } from '@/components/icons/recall-icons'
+import { ReviewHeatmap } from '@/components/app/review-heatmap'
 import type { ApiNote, ApiDeck } from '@/lib/types'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -163,6 +164,16 @@ export function HomeView() {
             </p>
           </div>
         </button>
+      </div>
+
+      {/* 30-DAY REVIEW HEATMAP STRIP */}
+      <div className="mb-8 animate-fade-in-up stagger-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-recall">
+            Last 30 days
+          </p>
+        </div>
+        <ReviewHeatmap days={30} compact />
       </div>
 
       {/* RECENT NOTES */}

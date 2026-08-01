@@ -158,7 +158,7 @@ async function syncInlineContent(noteId: string, userId: string, markdown: strin
         data: {
           deckId: deck.id,
           sourceNoteId: noteId,
-          cardType: 'basic',
+          cardType: card.cardType ?? 'basic',
           front: card.front,
           back: card.back,
         },

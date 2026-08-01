@@ -257,14 +257,18 @@ export function ReviewSession() {
           role="region"
           aria-label="Flashcard"
         >
-          {/* FRONT */}
-          <p className="text-xs uppercase tracking-wider text-muted-recall">Question</p>
+          {/* FRONT — cloze cards render as fill-in-the-blank */}
+          <p className="text-xs uppercase tracking-wider text-muted-recall">
+            {card?.cardType === 'cloze' ? 'Fill in the blank' : 'Question'}
+          </p>
           <p className="mt-3 whitespace-pre-wrap text-lg leading-relaxed sm:text-2xl">
-            {card?.front}
+            {card?.cardType === 'cloze'
+              ? renderClozeFront(card.front, revealed, card.back)
+              : card?.front}
           </p>
 
-          {/* BACK (revealed) */}
-          {revealed && (
+          {/* BACK (revealed) — cloze cards show the answer inline, basic cards show below */}
+          {revealed && card?.cardType !== 'cloze' && (
             <div className="mt-8 border-t border-hairline pt-6">
               <p className="text-xs uppercase tracking-wider text-muted-recall">Answer</p>
               <p className="mt-3 whitespace-pre-wrap text-base leading-relaxed sm:text-lg">
@@ -321,4 +325,21 @@ export function ReviewSession() {
       </footer>
     </div>
   )
+}
+
+/**
+ * Render a cloze card's front text.
+ * - Before reveal: replaces {{cN::text}} with [___] blanks
+ * - After reveal: shows the original text highlighted in green
+ *
+ * For multi-cloze cards (c1, c2, c3...), only the cloze matching
+ * the card's `back` field (which stores the cloze number) is blanked/revealed.
+ * Other clozes are shown as-is.
+ */
+function renderClozeFront(text: string, revealed: boolean, clozeNum: string): string {
+  const regex = new RegExp(`\\{\\{c${clozeNum}::([^}]+)\\}\\}`, 'g')
+  if (revealed) {
+    return text.replace(regex, '$1')
+  }
+  return text.replace(regex, '[___]')
 }

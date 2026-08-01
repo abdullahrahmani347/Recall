@@ -398,6 +398,14 @@ export function NoteEditor() {
   }, [body])
 
   /**
+   * Cloze deletion — wraps selected text in {{c1::selected text}}.
+   * Triggered by Cmd+Shift+C or the cloze toolbar button.
+   */
+  const insertCloze = useCallback(() => {
+    insertMarkdown('{{c1::', '}}', 'selected text')
+  }, [insertMarkdown])
+
+  /**
    * Image paste handler — reads the clipboard image, converts to a base64
    * data URL, and inserts a markdown image tag at the cursor. Phase 2
    * uses inline base64 to avoid the need for an upload service; the
@@ -726,6 +734,13 @@ export function NoteEditor() {
               value={body}
               onChange={(e) => onBodyChange(e.target.value)}
               onPaste={onPaste}
+              onKeyDown={(e) => {
+                // Cmd/Ctrl+Shift+C → cloze deletion
+                if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'c') {
+                  e.preventDefault()
+                  insertCloze()
+                }
+              }}
               onKeyUp={(e) => {
                 // Phase 3: broadcast cursor position for live cursors
                 const ta = e.currentTarget

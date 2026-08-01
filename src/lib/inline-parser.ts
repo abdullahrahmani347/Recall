@@ -20,6 +20,7 @@
 export interface InlineCard {
   front: string
   back: string
+  cardType?: 'basic' | 'cloze'
 }
 
 export interface InlineLink {
@@ -28,8 +29,10 @@ export interface InlineLink {
 
 /**
  * Extract inline flashcards from markdown content.
- * Matches lines containing ` :: ` (with spaces) to avoid false positives
- * with URLs or code.
+ * Two types:
+ * 1. Basic: `Term :: Definition` — creates a basic front/back card
+ * 2. Cloze: lines containing `{{c1::text}}` syntax — creates cloze deletion cards
+ *    Each unique cloze number (c1, c2, c3...) becomes a separate card.
  */
 export function extractInlineCards(markdown: string): InlineCard[] {
   const cards: InlineCard[] = []
@@ -37,15 +40,32 @@ export function extractInlineCards(markdown: string): InlineCard[] {
 
   for (const line of lines) {
     const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('-')) continue
+    if (!trimmed || trimmed.startsWith('#')) continue
+
+    // Check for cloze deletions first: {{c1::text}}, {{c2::text}}, etc.
+    const clozeMatches = [...trimmed.matchAll(/\{\{c(\d+)::([^}]+)\}\}/g)]
+    if (clozeMatches.length > 0) {
+      // Get unique cloze numbers
+      const clozeNumbers = [...new Set(clozeMatches.map((m) => m[1]))]
+      // Create one card per cloze number
+      for (const num of clozeNumbers) {
+        cards.push({
+          front: trimmed,
+          back: num,
+          cardType: 'cloze',
+        })
+      }
+      continue // Skip basic card check for cloze lines
+    }
 
     // Match "Term :: Definition" — the :: must have spaces around it
-    const match = trimmed.match(/^(.+?)\s*::\s*(.+)$/)
-    if (match) {
-      const front = match[1].trim()
-      const back = match[2].trim()
+    // Skip lines that start with - (list items) unless they have ::
+    const basicMatch = trimmed.match(/^(.+?)\s*::\s*(.+)$/)
+    if (basicMatch && !trimmed.startsWith('-')) {
+      const front = basicMatch[1].trim()
+      const back = basicMatch[2].trim()
       if (front.length > 0 && front.length <= 5000 && back.length > 0 && back.length <= 5000) {
-        cards.push({ front, back })
+        cards.push({ front, back, cardType: 'basic' })
       }
     }
   }

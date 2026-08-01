@@ -21,6 +21,7 @@ import { ReminderBanner } from '@/components/app/reminder-banner'
 import { OnboardingFlow } from '@/components/app/onboarding-flow'
 import { ViewTransition } from '@/components/app/view-transition'
 import { CommandPalette } from '@/components/app/command-palette'
+import { QuickCapture } from '@/components/app/quick-capture'
 import { GraphView } from '@/components/app/graph-view'
 import { Loader2 } from 'lucide-react'
 
@@ -118,6 +119,7 @@ export default function Home() {
       </main>
       <BottomNav />
       <CommandPalette />
+      <QuickCapture />
     </div>
   )
 }

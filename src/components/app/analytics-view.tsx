@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
+import { ReviewHeatmap } from '@/components/app/review-heatmap'
 import { useAppStore } from '@/stores/app-store'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Calendar, Zap } from 'lucide-react'
 import {
   BarChart,
   Bar,
@@ -42,6 +44,21 @@ export function AnalyticsView() {
   const { data, isLoading } = useQuery<AnalyticsT>({
     queryKey: ['analytics', range],
     queryFn: () => api<AnalyticsT>(`/api/analytics?range=${range}`),
+  })
+
+  // Forecast data — always loaded (not range-dependent)
+  const { data: forecast } = useQuery<{
+    dailyDue: { date: string; count: number }[]
+    totalDue: number
+    todayCount: number
+    tomorrowCount: number
+    nextHeavyDay: { date: string; count: number } | null
+    avgPerDay: number
+    estimatedDaysToClear: number | null
+  }>({
+    queryKey: ['forecast'],
+    queryFn: () => api('/api/forecast'),
+    staleTime: 60_000,
   })
 
   if (isLoading || !data) {
@@ -113,6 +130,97 @@ export function AnalyticsView() {
         <StatCard icon={Clock} label="Reviews" value={`${data.totalReviews}`} sub={`in ${data.days} days`} color="text-grade-easy" className="animate-fade-in-up stagger-3" />
         <StatCard icon={Target} label="Avg time" value={avgResponseSec > 0 ? `${avgResponseSec}s` : '—'} sub="per card" color="text-grade-hard" className="animate-fade-in-up stagger-4" />
       </div>
+
+      {/* REVIEW HEATMAP — GitHub-style contribution grid */}
+      <Card className="mb-6 border-hairline bg-card-surface p-5 animate-fade-in-up stagger-2">
+        <ReviewHeatmap days={365} />
+      </Card>
+
+      {/* FORECAST — upcoming review load + completion estimates */}
+      {forecast && (
+        <Card className="mb-6 border-hairline bg-card-surface p-5 animate-fade-in-up stagger-3">
+          <div className="mb-4 flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-accent-warm" aria-hidden="true" />
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-recall">
+              Forecast
+            </h2>
+          </div>
+
+          {/* Forecast stat row */}
+          <div className="mb-4 grid grid-cols-3 gap-3">
+            <div className="rounded-lg bg-void p-3 text-center">
+              <p className="font-display text-2xl font-semibold tabular-nums text-accent-warm">
+                {forecast.todayCount}
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-recall">Due today</p>
+            </div>
+            <div className="rounded-lg bg-void p-3 text-center">
+              <p className="font-display text-2xl font-semibold tabular-nums text-secondary-recall">
+                {forecast.tomorrowCount}
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-recall">Tomorrow</p>
+            </div>
+            <div className="rounded-lg bg-void p-3 text-center">
+              <p className="font-display text-2xl font-semibold tabular-nums text-accent-brand">
+                {forecast.avgPerDay}
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-recall">Avg/day</p>
+            </div>
+          </div>
+
+          {/* 14-day bar chart */}
+          <div className="mb-4">
+            <div className="flex items-end gap-1" style={{ height: '60px' }}>
+              {forecast.dailyDue.map((day) => {
+                const maxCount = Math.max(...forecast.dailyDue.map((d) => d.count), 1)
+                const heightPct = (day.count / maxCount) * 100
+                return (
+                  <div
+                    key={day.date}
+                    className="flex-1 rounded-t-sm transition-smooth"
+                    style={{
+                      height: `${Math.max(heightPct, 4)}%`,
+                      backgroundColor: day.count === 0 ? 'var(--border-hairline)' : 'var(--accent-brand)',
+                      opacity: day.count === 0 ? 0.3 : 0.4 + heightPct * 0.006,
+                    }}
+                    title={`${day.date}: ${day.count} due`}
+                  />
+                )
+              })}
+            </div>
+            <div className="mt-1.5 flex justify-between text-[9px] text-muted-recall">
+              <span>Today</span>
+              <span>+14 days</span>
+            </div>
+          </div>
+
+          {/* Next heavy day + estimate */}
+          <div className="flex flex-col gap-2 text-sm">
+            {forecast.nextHeavyDay && (
+              <div className="flex items-center gap-2 text-secondary-recall">
+                <Zap className="h-3.5 w-3.5 text-accent-warm" />
+                <span>
+                  Next heavy day: <span className="font-medium text-primary-recall">
+                    {forecast.nextHeavyDay.count} cards
+                  </span>{' '}
+                  on {new Date(forecast.nextHeavyDay.date).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })}
+                </span>
+              </div>
+            )}
+            {forecast.estimatedDaysToClear !== null && forecast.totalDue > 0 && (
+              <div className="flex items-center gap-2 text-secondary-recall">
+                <TrendingUp className="h-3.5 w-3.5 text-accent-brand" />
+                <span>
+                  At your current pace, you&apos;ll clear the backlog in{' '}
+                  <span className="font-medium text-primary-recall">
+                    {forecast.estimatedDaysToClear} day{forecast.estimatedDaysToClear === 1 ? '' : 's'}
+                  </span>
+                </span>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* DAILY REVIEWS CHART */}
       <Card className="mb-6 border-hairline bg-card-surface p-5">
