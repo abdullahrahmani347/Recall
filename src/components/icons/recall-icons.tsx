@@ -277,3 +277,23 @@ export function HomeIcon({ size = 24, className, animated = true }: IconProps) {
     </svg>
   )
 }
+
+/* Graph icon — knowledge graph nodes + edges */
+export function GraphIcon({ size = 24, className, animated = true }: IconProps) {
+  return (
+    <svg {...baseProps(size, className)}>
+      <circle cx="5" cy="6" r="2.5" fill="currentColor" fillOpacity="0.3" />
+      <circle cx="19" cy="6" r="2.5" fill="currentColor" fillOpacity="0.3" />
+      <circle cx="12" cy="18" r="2.5" fill="currentColor" fillOpacity="0.3" />
+      <line x1="5" y1="6" x2="19" y2="6" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+      <line x1="5" y1="6" x2="12" y2="18" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+      <line x1="19" y1="6" x2="12" y2="18" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+      {animated && (
+        <circle cx="12" cy="18" r="2.5" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <animate attributeName="r" values="2.5;4;2.5" dur="2.5s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.6;0;0.6" dur="2.5s" repeatCount="indefinite" />
+        </circle>
+      )}
+    </svg>
+  )
+}
