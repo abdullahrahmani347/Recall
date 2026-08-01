@@ -1,7 +1,7 @@
 // Recall Service Worker — PWA offline support
-// Caches the app shell for instant offline loading.
+// Cache version bumped to force invalidation of stale caches.
 
-const CACHE_NAME = 'recall-v1'
+const CACHE_NAME = 'recall-v2-2026-08-01'
 const APP_SHELL = [
   '/',
   '/favicon.svg',
@@ -30,18 +30,13 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event
 
-  // Only handle GET requests
   if (request.method !== 'GET') return
 
   const url = new URL(request.url)
 
-  // Skip cross-origin requests (API calls to external services)
   if (url.origin !== self.location.origin) return
-
-  // Skip API calls (they need fresh data, not cached)
   if (url.pathname.startsWith('/api/')) return
 
-  // For navigation requests, try network first, fall back to cached shell
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
@@ -55,7 +50,6 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // For static assets, try cache first, fall back to network
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached
