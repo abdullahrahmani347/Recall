@@ -11,6 +11,7 @@ import {
   Check,
   Trophy,
 } from 'lucide-react'
+import { SchedulingExplainer } from './scheduling-explainer'
 import type { ApiFlashcard, Grade } from '@/lib/types'
 import { toast } from 'sonner'
 import { formatInterval } from '@/lib/fsrs'
@@ -355,6 +356,13 @@ export function ReviewSession() {
             </div>
             {showHistory && card && (
               <CardHistory cardId={card.id} />
+            )}
+
+            {/* AI: Scheduling explainer */}
+            {card && (
+              <div className="mt-3">
+                <SchedulingExplainer cardId={card.id} />
+              </div>
             )}
           </div>
         )}

@@ -44,6 +44,8 @@ import { SummaryStream } from './summary-stream'
 import { GenerateCardsDialog } from './generate-cards-dialog'
 import { RelatedNotes } from './related-notes'
 import { Backlinks } from './backlinks'
+import { AutoTagSuggestions } from './auto-tag-suggestions'
+import { SuggestConnections } from './suggest-connections'
 import { PresenceAvatars } from './presence-avatars'
 import { LiveCursors } from './live-cursors'
 import { CommentsSidebar } from './comments-sidebar'
@@ -634,6 +636,17 @@ export function NoteEditor() {
           </button>
         </div>
 
+        {/* AI: Auto-tag suggestions */}
+        {noteId && (
+          <div className="mt-2">
+            <AutoTagSuggestions
+              noteId={noteId}
+              selectedTagIds={selectedTagIds}
+              onAddTag={(tagId) => setSelectedTagIds([...selectedTagIds, tagId])}
+            />
+          </div>
+        )}
+
         {/* MARKDOWN TOOLBAR — scrollable on mobile, full on desktop */}
         <div className="mt-6 flex items-center gap-1 rounded-xl border border-hairline bg-card-surface p-1.5">
           {/* Undo/Redo — always visible */}
@@ -817,6 +830,13 @@ export function NoteEditor() {
         {noteId && (
           <div className="mt-4">
             <Backlinks noteId={noteId} />
+          </div>
+        )}
+
+        {/* AI: Suggest connections between this note and others */}
+        {noteId && body.trim().length > 50 && (
+          <div className="mt-4">
+            <SuggestConnections noteId={noteId} />
           </div>
         )}
       </main>

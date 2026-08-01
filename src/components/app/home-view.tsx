@@ -13,6 +13,7 @@ import {
   ClockIcon,
 } from '@/components/icons/recall-icons'
 import { ReviewHeatmap } from '@/components/app/review-heatmap'
+import { KnowledgeGaps } from '@/components/app/knowledge-gaps'
 import type { ApiNote, ApiDeck } from '@/lib/types'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -180,6 +181,11 @@ export function HomeView() {
           </p>
         </div>
         <ReviewHeatmap days={30} compact />
+      </div>
+
+      {/* AI: Knowledge gaps — cards the user is struggling with */}
+      <div className="mb-8 animate-fade-in-up stagger-4">
+        <KnowledgeGaps />
       </div>
 
       {/* RECENT NOTES */}
