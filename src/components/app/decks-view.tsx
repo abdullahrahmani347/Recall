@@ -3,6 +3,23 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useAppStore } from '@/stores/app-store'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -13,6 +30,7 @@ import {
   Trash2,
   ChevronRight,
   Play,
+  GripVertical,
   X,
 } from 'lucide-react'
 import { LayersIcon } from '@/components/icons/recall-icons'
@@ -73,6 +91,36 @@ export function DecksView() {
   }
 
   const decks = data?.decks ?? []
+  const [localDecks, setLocalDecks] = useState<Deck[]>([])
+
+  if (data && data.decks !== localDecks) {
+    setLocalDecks(data.decks)
+  }
+
+  const reorderMutation = useMutation({
+    mutationFn: (deckIds: string[]) =>
+      api('/api/decks/reorder', {
+        method: 'POST',
+        body: JSON.stringify({ deckIds }),
+      }),
+  })
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setLocalDecks((prev) => {
+      const oldIndex = prev.findIndex((d) => d.id === active.id)
+      const newIndex = prev.findIndex((d) => d.id === over.id)
+      const next = arrayMove(prev, oldIndex, newIndex)
+      reorderMutation.mutate(next.map((d) => d.id))
+      return next
+    })
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-8 pt-6 sm:px-6 sm:pt-8">
@@ -95,21 +143,21 @@ export function DecksView() {
       </header>
 
       {/* Summary stats */}
-      {decks.length > 0 && (
+      {localDecks.length > 0 && (
         <div className="mb-6 grid grid-cols-3 gap-3 animate-fade-in-up stagger-1">
           <Card className="border-hairline bg-card-surface p-3 text-center">
-            <p className="font-display text-xl font-semibold tabular-nums">{decks.length}</p>
+            <p className="font-display text-xl font-semibold tabular-nums">{localDecks.length}</p>
             <p className="text-[10px] uppercase tracking-wider text-muted-recall">Decks</p>
           </Card>
           <Card className="border-hairline bg-card-surface p-3 text-center">
             <p className="font-display text-xl font-semibold tabular-nums text-accent-brand">
-              {decks.reduce((s, d) => s + d.cardCount, 0)}
+              {localDecks.reduce((s, d) => s + d.cardCount, 0)}
             </p>
             <p className="text-[10px] uppercase tracking-wider text-muted-recall">Cards</p>
           </Card>
           <Card className="border-hairline bg-card-surface p-3 text-center">
             <p className="font-display text-xl font-semibold tabular-nums text-accent-warm">
-              {decks.reduce((s, d) => s + d.dueCount, 0)}
+              {localDecks.reduce((s, d) => s + d.dueCount, 0)}
             </p>
             <p className="text-[10px] uppercase tracking-wider text-muted-recall">Due</p>
           </Card>
@@ -130,7 +178,7 @@ export function DecksView() {
             </div>
           ))}
         </div>
-      ) : decks.length === 0 ? (
+      ) : localDecks.length === 0 ? (
         <Card className="border border-dashed border-hairline bg-card-surface/50 p-10 text-center animate-fade-in">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-brand-dim text-accent-brand">
             <LayersIcon size={28} aria-hidden="true" />
@@ -148,64 +196,33 @@ export function DecksView() {
           </Button>
         </Card>
       ) : (
-        <ul className="space-y-2">
-          {decks.map((deck, i) => (
-            <li
-              key={deck.id}
-              className="animate-fade-in-up"
-              style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
-            >
-              <Card className="border-hairline bg-card-surface p-4 card-lift">
-                <div className="flex items-center gap-3">
-                  <span
-                    className="h-10 w-1.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: deck.color }}
-                    aria-hidden="true"
-                  />
-                  <button
-                    onClick={() => openDeck(deck.id)}
-                    className="flex flex-1 items-center justify-between gap-2 text-left"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{deck.name}</p>
-                      <p className="text-xs text-muted-recall">
-                        {deck.cardCount} card{deck.cardCount === 1 ? '' : 's'} ·{' '}
-                        <span className={deck.dueCount > 0 ? 'text-accent-warm' : ''}>
-                          {deck.dueCount} due
-                        </span>
-                      </p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-recall" aria-hidden="true" />
-                  </button>
-
-                  <Button
-                    size="sm"
-                    disabled={deck.dueCount === 0}
-                    onClick={() => startReview(deck.id)}
-                    className="bg-accent-brand text-void hover:bg-accent-brand/90 press"
-                  >
-                    <Play className="h-3 w-3" />
-                    <span className="sr-only">Review</span>
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={async () => {
-                      if (!confirm(`Delete "${deck.name}"? All cards in it will be lost.`)) return
-                      await deleteMutation.mutateAsync(deck.id)
-                      toast.success('Deck deleted')
-                    }}
-                    className="h-8 w-8 p-0 text-muted-recall hover:text-grade-again press"
-                    aria-label="Delete deck"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </Card>
-            </li>
-          ))}
-        </ul>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
+          <SortableContext
+            items={localDecks.map((d) => d.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <ul className="space-y-2">
+              {localDecks.map((deck, i) => (
+                <SortableDeckItem
+                  key={deck.id}
+                  deck={deck}
+                  index={i}
+                  onOpen={() => openDeck(deck.id)}
+                  onReview={() => startReview(deck.id)}
+                  onDelete={async () => {
+                    if (!confirm(`Delete "${deck.name}"? All cards in it will be lost.`)) return
+                    await deleteMutation.mutateAsync(deck.id)
+                    toast.success('Deck deleted')
+                  }}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
       )}
 
       {/* CREATE SHEET */}
@@ -282,5 +299,96 @@ export function DecksView() {
         </div>
       )}
     </div>
+  )
+}
+
+function SortableDeckItem({
+  deck,
+  index,
+  onOpen,
+  onReview,
+  onDelete,
+}: {
+  deck: Deck
+  index: number
+  onOpen: () => void
+  onReview: () => void
+  onDelete: () => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: deck.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.8 : undefined,
+  }
+
+  return (
+    <li
+      ref={setNodeRef}
+      className="animate-fade-in-up"
+      style={{ ...style, animationDelay: `${Math.min(index, 8) * 40}ms` }}
+    >
+      <Card className={`border-hairline bg-card-surface p-4 card-lift ${isDragging ? 'shadow-panel' : ''}`}>
+        <div className="flex items-center gap-2">
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab touch-none text-muted-recall hover:text-primary-recall active:cursor-grabbing"
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <span
+            className="h-10 w-1.5 shrink-0 rounded-full"
+            style={{ backgroundColor: deck.color }}
+            aria-hidden="true"
+          />
+          <button
+            onClick={onOpen}
+            className="flex flex-1 items-center justify-between gap-2 text-left"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium">{deck.name}</p>
+              <p className="text-xs text-muted-recall">
+                {deck.cardCount} card{deck.cardCount === 1 ? '' : 's'} ·{' '}
+                <span className={deck.dueCount > 0 ? 'text-accent-warm' : ''}>
+                  {deck.dueCount} due
+                </span>
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-recall" aria-hidden="true" />
+          </button>
+
+          <Button
+            size="sm"
+            disabled={deck.dueCount === 0}
+            onClick={onReview}
+            className="bg-accent-brand text-void hover:bg-accent-brand/90 press"
+          >
+            <Play className="h-3 w-3" />
+            <span className="sr-only">Review</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onDelete}
+            className="h-8 w-8 p-0 text-muted-recall hover:text-grade-again press"
+            aria-label="Delete deck"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </Card>
+    </li>
   )
 }
