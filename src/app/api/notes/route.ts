@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
         take: 1,
       },
     },
-    orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
+    orderBy: [{ isPinned: 'desc' }, { sortOrder: 'asc' }, { updatedAt: 'desc' }],
   })
 
   return NextResponse.json({ notes })

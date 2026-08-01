@@ -3,11 +3,28 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useAppStore } from '@/stores/app-store'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Plus, Search, Pin, Check, Trash2, Archive, X } from 'lucide-react'
+import { Plus, Search, Pin, Check, Trash2, Archive, X, GripVertical } from 'lucide-react'
 import { NotebookIcon } from '@/components/icons/recall-icons'
 import type { ApiNote, ApiTag } from '@/lib/types'
 import { formatDistanceToNow } from 'date-fns'
@@ -37,6 +54,38 @@ export function NotesView() {
   })
 
   const notes = notesData?.notes ?? []
+  const [localNotes, setLocalNotes] = useState<ApiNote[]>([])
+
+  // Sync server data → local sortable state
+  if (notesData && notesData.notes !== localNotes && !selectMode) {
+    setLocalNotes(notesData.notes)
+  }
+
+  const reorderMutation = useMutation({
+    mutationFn: (noteIds: string[]) =>
+      api('/api/notes/reorder', {
+        method: 'POST',
+        body: JSON.stringify({ noteIds }),
+      }),
+  })
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setLocalNotes((prev) => {
+      const oldIndex = prev.findIndex((n) => n.id === active.id)
+      const newIndex = prev.findIndex((n) => n.id === over.id)
+      const next = arrayMove(prev, oldIndex, newIndex)
+      // Fire and forget the reorder
+      reorderMutation.mutate(next.map((n) => n.id))
+      return next
+    })
+  }
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -236,68 +285,136 @@ export function NotesView() {
           </p>
         </Card>
       ) : (
-        <ul className="space-y-2">
-          {notes.map((note, i) => (
-            <li
-              key={note.id}
-              className="animate-fade-in-up"
-              style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
-            >
-              <button
-                onClick={() => selectMode ? toggleSelect(note.id) : openNote(note.id)}
-                className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left card-lift press ${
-                  selectedIds.has(note.id)
-                    ? 'border-accent-brand bg-accent-brand-dim'
-                    : 'border-hairline bg-card-surface'
-                }`}
-              >
-                {/* Selection checkbox */}
-                {selectMode && (
-                  <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
-                    selectedIds.has(note.id) ? 'border-accent-brand bg-accent-brand text-void' : 'border-hairline'
-                  }`}>
-                    {selectedIds.has(note.id) && <Check className="h-3 w-3" />}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                      {note.isPinned && (
-                        <Pin className="h-3 w-3 shrink-0 text-accent-warm" aria-hidden="true" />
-                      )}
-                      <p className="truncate text-sm font-medium">
-                        {note.title || 'Untitled'}
-                      </p>
-                    </div>
-                    <span className="shrink-0 text-xs text-muted-recall">
-                      {formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}
-                    </span>
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-xs text-muted-recall">
-                    {note.contentPlainText.slice(0, 200) || 'Empty note'}
-                  </p>
-                  {note.tags?.length ? (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {note.tags.map(({ tag }) => (
-                        <span
-                          key={tag.id}
-                          className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                          style={{
-                            backgroundColor: `${tag.color}20`,
-                            color: tag.color,
-                          }}
-                        >
-                          {tag.name}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
+          <SortableContext
+            items={localNotes.map((n) => n.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <ul className="space-y-2">
+              {localNotes.map((note, i) => (
+                <SortableNoteItem
+                  key={note.id}
+                  note={note}
+                  index={i}
+                  selectMode={selectMode}
+                  selected={selectedIds.has(note.id)}
+                  onToggleSelect={() => toggleSelect(note.id)}
+                  onOpen={() => openNote(note.id)}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
+  )
+}
+
+function SortableNoteItem({
+  note,
+  index,
+  selectMode,
+  selected,
+  onToggleSelect,
+  onOpen,
+}: {
+  note: ApiNote
+  index: number
+  selectMode: boolean
+  selected: boolean
+  onToggleSelect: () => void
+  onOpen: () => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: note.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.8 : undefined,
+  }
+
+  return (
+    <li
+      ref={setNodeRef}
+      className="animate-fade-in-up"
+      style={{ ...style, animationDelay: `${Math.min(index, 8) * 40}ms` }}
+    >
+      <div
+        className={`flex items-start gap-1 rounded-xl border p-4 text-left card-lift press ${
+          selected ? 'border-accent-brand bg-accent-brand-dim' : 'border-hairline bg-card-surface'
+        } ${isDragging ? 'shadow-panel' : ''}`}
+      >
+        {/* Drag handle */}
+        {!selectMode && (
+          <button
+            {...attributes}
+            {...listeners}
+            className="mt-1 cursor-grab touch-none text-muted-recall hover:text-primary-recall active:cursor-grabbing"
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
+
+        {/* Selection checkbox */}
+        {selectMode && (
+          <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+            selected ? 'border-accent-brand bg-accent-brand text-void' : 'border-hairline'
+          }`}>
+            {selected && <Check className="h-3 w-3" />}
+          </div>
+        )}
+
+        <button
+          onClick={() => selectMode ? onToggleSelect() : onOpen()}
+          className="min-w-0 flex-1 text-left"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              {note.isPinned && (
+                <Pin className="h-3 w-3 shrink-0 text-accent-warm" aria-hidden="true" />
+              )}
+              <p className="truncate text-sm font-medium">
+                {note.title || 'Untitled'}
+              </p>
+            </div>
+            <span className="shrink-0 text-xs text-muted-recall">
+              {formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}
+            </span>
+          </div>
+          <p className="mt-1 line-clamp-2 text-xs text-muted-recall">
+            {note.contentPlainText.slice(0, 200) || 'Empty note'}
+          </p>
+          {note.tags?.length ? (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {note.tags.map(({ tag }) => (
+                <span
+                  key={tag.id}
+                  className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={{
+                    backgroundColor: `${tag.color}20`,
+                    color: tag.color,
+                  }}
+                >
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </button>
+      </div>
+    </li>
   )
 }

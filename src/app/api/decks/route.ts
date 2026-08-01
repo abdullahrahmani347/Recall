@@ -15,7 +15,7 @@ export async function GET() {
 
   const decks = await db.deck.findMany({
     where: { userId: user!.id },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     include: {
       _count: { select: { flashcards: true } },
       flashcards: {
