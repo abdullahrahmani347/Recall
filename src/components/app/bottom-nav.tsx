@@ -58,7 +58,7 @@ export function BottomNav() {
                 )}
                 <Icon
                   size={22}
-                  animated={active}
+                  animated={active ? true : undefined}
                   className={cn('transition-smooth', active && 'scale-110')}
                 />
                 <span className="hidden sm:inline">{item.label}</span>
