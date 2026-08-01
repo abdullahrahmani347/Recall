@@ -24,27 +24,37 @@ import { CommandPalette } from '@/components/app/command-palette'
 import { QuickCapture } from '@/components/app/quick-capture'
 import { GraphView } from '@/components/app/graph-view'
 import { useKeyboardShortcuts, ShortcutsHelpModal } from '@/hooks/use-keyboard-shortcuts'
-import { TemplatePicker, BUILT_IN_TEMPLATES, type NoteTemplate } from '@/components/app/template-picker'
+import { TemplatePicker } from '@/components/app/template-picker'
 import { CustomStudyPicker } from '@/components/app/custom-study-picker'
 import { Loader2 } from 'lucide-react'
 
-// Use a mounted flag to skip the server-rendered content and only render
-// the app after hydration. This avoids any hydration mismatch caused by
-// persisted store state, theme classes, or auth cookies.
 export default function Home() {
   const [mounted, setMounted] = useState(false)
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  const [showCustomStudy, setShowCustomStudy] = useState(false)
+
   useEffect(() => {
-    // Mark as mounted so we render the full app after hydration.
-    // This is the standard "mounted" pattern for avoiding hydration mismatches
-    // with persisted client state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
   }, [])
 
   const { user, view, isLoading } = useAuth()
   const setView = useAppStore((s) => s.setView)
+  const openNote = useAppStore((s) => s.openNote)
+  const { showHelp, setShowHelp } = useKeyboardShortcuts()
 
-  // Check onboarding status when user logs in.
+  useEffect(() => {
+    const onNewNote = () => setShowTemplatePicker(true)
+    window.addEventListener('recall-new-note', onNewNote)
+    return () => window.removeEventListener('recall-new-note', onNewNote)
+  }, [])
+
+  useEffect(() => {
+    const onCustomStudy = () => setShowCustomStudy(true)
+    window.addEventListener('recall-custom-study', onCustomStudy)
+    return () => window.removeEventListener('recall-custom-study', onCustomStudy)
+  }, [])
+
   const { data: onboardingData, isLoading: onboardingLoading } = useQuery({
     queryKey: ['onboarding-check', user?.id],
     queryFn: () =>
@@ -59,7 +69,6 @@ export default function Home() {
     onboardingData !== undefined &&
     !onboardingData?.onboarding?.completed
 
-  // Redirect logic based on auth state
   useEffect(() => {
     if (!mounted || isLoading) return
     if (!user && view !== 'landing' && view !== 'auth') {
@@ -70,8 +79,6 @@ export default function Home() {
     }
   }, [user, view, isLoading, setView, mounted])
 
-  // Before mount, render a minimal skeleton to avoid hydration mismatch.
-  // After mount, render the full app.
   if (!mounted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-canvas">
@@ -80,7 +87,6 @@ export default function Home() {
     )
   }
 
-  // First-load splash — only show briefly while the auth query resolves
   if (isLoading && !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-canvas">
@@ -89,22 +95,18 @@ export default function Home() {
     )
   }
 
-  // PUBLIC ROUTES
   if (!user) {
     if (view === 'auth') return <AuthScreen />
     return <LandingPage />
   }
 
-  // Show onboarding for new users (but allow them to skip into the app)
   if (needsOnboarding && view !== 'note-editor' && view !== 'review') {
     return <OnboardingFlow />
   }
 
-  // FULL-SCREEN APP ROUTES (no bottom nav)
   if (view === 'note-editor') return <NoteEditor />
   if (view === 'review') return <ReviewSession />
 
-  // APP SHELL ROUTES (with bottom nav)
   return (
     <div className="flex min-h-screen flex-col bg-canvas">
       <ReminderBanner />
@@ -128,7 +130,6 @@ export default function Home() {
         <TemplatePicker
           onPick={(template) => {
             setShowTemplatePicker(false)
-            // Store template content for the editor to pick up
             sessionStorage.setItem('recall-template-title', template.title)
             sessionStorage.setItem('recall-template-content', template.content)
             openNote(null)
