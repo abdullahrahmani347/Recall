@@ -132,6 +132,12 @@ export function HomeView() {
             >
               Start review
             </Button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('recall-custom-study'))}
+              className="text-[11px] text-muted-recall hover:text-accent-brand"
+            >
+              Custom study
+            </button>
           </div>
         </div>
       </Card>

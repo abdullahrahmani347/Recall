@@ -23,6 +23,9 @@ import { ViewTransition } from '@/components/app/view-transition'
 import { CommandPalette } from '@/components/app/command-palette'
 import { QuickCapture } from '@/components/app/quick-capture'
 import { GraphView } from '@/components/app/graph-view'
+import { useKeyboardShortcuts, ShortcutsHelpModal } from '@/hooks/use-keyboard-shortcuts'
+import { TemplatePicker, BUILT_IN_TEMPLATES, type NoteTemplate } from '@/components/app/template-picker'
+import { CustomStudyPicker } from '@/components/app/custom-study-picker'
 import { Loader2 } from 'lucide-react'
 
 // Use a mounted flag to skip the server-rendered content and only render
@@ -120,6 +123,25 @@ export default function Home() {
       <BottomNav />
       <CommandPalette />
       <QuickCapture />
+      <ShortcutsHelpModal open={showHelp} onClose={() => setShowHelp(false)} />
+      {showTemplatePicker && (
+        <TemplatePicker
+          onPick={(template) => {
+            setShowTemplatePicker(false)
+            // Store template content for the editor to pick up
+            sessionStorage.setItem('recall-template-title', template.title)
+            sessionStorage.setItem('recall-template-content', template.content)
+            openNote(null)
+          }}
+          onClose={() => setShowTemplatePicker(false)}
+        />
+      )}
+      {showCustomStudy && (
+        <CustomStudyPicker
+          deckId={null}
+          onClose={() => setShowCustomStudy(false)}
+        />
+      )}
     </div>
   )
 }

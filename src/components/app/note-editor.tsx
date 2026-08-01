@@ -129,11 +129,25 @@ export function NoteEditor() {
     setBody(noteData.note.contentMarkdown)
     setNoteId(noteData.note.id)
     setSelectedTagIds(noteData.note.tags.map((t) => t.tag.id))
-    // Show the latest completed summary on load if one exists
     const completed = noteData.note.summaries?.find(
       (s) => s.status === 'complete' && s.summaryText
     )
     if (completed) setShowSummary(true)
+  }
+
+  // Load template content for new notes (set by TemplatePicker)
+  const [templateLoaded, setTemplateLoaded] = useState(false)
+  if (isNew && !templateLoaded && typeof window !== 'undefined') {
+    const tmplTitle = sessionStorage.getItem('recall-template-title')
+    const tmplContent = sessionStorage.getItem('recall-template-content')
+    if (tmplTitle !== null || tmplContent !== null) {
+      if (tmplTitle) setTitle(tmplTitle)
+      if (tmplContent) setBody(tmplContent)
+      setDirty(true)
+      sessionStorage.removeItem('recall-template-title')
+      sessionStorage.removeItem('recall-template-content')
+    }
+    setTemplateLoaded(true)
   }
 
   // Load tags

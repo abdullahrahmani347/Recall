@@ -35,17 +35,30 @@ const GRADE_BUTTONS: {
 
 export function ReviewSession() {
   const qc = useQueryClient()
-  const { reviewDeckId, setView } = useAppStore()
+  const { reviewDeckId, setView, openNote } = useAppStore()
   const [revealed, setRevealed] = useState(false)
   const [index, setIndex] = useState(0)
   const [completed, setCompleted] = useState(0)
   const [startedAt] = useState(() => Date.now())
   const [sessionGrades, setSessionGrades] = useState<Grade[]>([])
   const [cardStartTime, setCardStartTime] = useState(() => Date.now())
+  const [showHistory, setShowHistory] = useState(false)
+
+  // Check for custom study mode (set by CustomStudyPicker)
+  const customMode = typeof window !== 'undefined' ? sessionStorage.getItem('recall-custom-mode') : null
+  const customDeck = typeof window !== 'undefined' ? sessionStorage.getItem('recall-custom-deck') : null
 
   const { data, isLoading } = useQuery<QueueResponse>({
-    queryKey: ['review-queue', reviewDeckId],
+    queryKey: ['review-queue', reviewDeckId, customMode],
     queryFn: () => {
+      // Use custom endpoint if a custom mode is set
+      if (customMode) {
+        const params = new URLSearchParams()
+        params.set('mode', customMode)
+        if (customDeck) params.set('deckId', customDeck)
+        return api<QueueResponse>(`/api/review/custom?${params.toString()}`)
+      }
+      // Regular due queue
       const params = new URLSearchParams()
       if (reviewDeckId) params.set('deckId', reviewDeckId)
       return api<QueueResponse>(`/api/review/queue${params.size ? `?${params.toString()}` : ''}`)
@@ -311,6 +324,40 @@ export function ReviewSession() {
             </>
           )}
         </div>
+
+        {/* CONTEXT — source note link + review history toggle */}
+        {card && (
+          <div className="mt-6 border-t border-hairline pt-4">
+            <div className="flex items-center justify-between gap-3">
+              {card.sourceNoteId ? (
+                <button
+                  onClick={() => {
+                    // Clear custom mode so it doesn't interfere
+                    sessionStorage.removeItem('recall-custom-mode')
+                    sessionStorage.removeItem('recall-custom-deck')
+                    setView('notes')
+                    // The note will be opened via a timeout to let the view switch first
+                    setTimeout(() => openNote(card.sourceNoteId!), 200)
+                  }}
+                  className="text-xs text-accent-brand hover:underline"
+                >
+                  View source note
+                </button>
+              ) : (
+                <span className="text-xs text-muted-recall">No source note</span>
+              )}
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="text-xs text-muted-recall hover:text-primary-recall"
+              >
+                {showHistory ? 'Hide history' : 'Show history'}
+              </button>
+            </div>
+            {showHistory && card && (
+              <CardHistory cardId={card.id} />
+            )}
+          </div>
+        )}
       </main>
 
       {/* FOOTER HINT */}
@@ -342,4 +389,57 @@ function renderClozeFront(text: string, revealed: boolean, clozeNum: string): st
     return text.replace(regex, '$1')
   }
   return text.replace(regex, '[___]')
+}
+
+/**
+ * CardHistory — shows the last 10 review logs for the current card.
+ * Displays grade, date, interval change, and response time.
+ */
+function CardHistory({ cardId }: { cardId: string }) {
+  const { data } = useQuery<{
+    history: {
+      id: string
+      reviewedAt: string
+      grade: string
+      previousInterval: number
+      newInterval: number
+      responseTimeMs: number
+    }[]
+  }>({
+    queryKey: ['card-history', cardId],
+    queryFn: () => api(`/api/cards/${cardId}/history`),
+    staleTime: 30_000,
+  })
+
+  if (!data || data.history.length === 0) {
+    return <p className="mt-2 text-xs text-muted-recall">No review history yet.</p>
+  }
+
+  const gradeColors: Record<string, string> = {
+    again: 'text-grade-again',
+    hard: 'text-grade-hard',
+    good: 'text-grade-good',
+    easy: 'text-grade-easy',
+  }
+
+  return (
+    <ul className="mt-2 space-y-1">
+      {data.history.slice(0, 5).map((log) => (
+        <li key={log.id} className="flex items-center gap-3 text-xs">
+          <span className={`font-medium ${gradeColors[log.grade] ?? 'text-muted-recall'}`}>
+            {log.grade}
+          </span>
+          <span className="text-muted-recall">
+            {new Date(log.reviewedAt).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+          </span>
+          <span className="text-muted-recall tabular-nums">
+            {log.previousInterval}d → {log.newInterval}d
+          </span>
+          <span className="text-muted-recall tabular-nums">
+            {Math.round(log.responseTimeMs / 1000)}s
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
 }
