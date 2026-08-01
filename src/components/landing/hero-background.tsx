@@ -284,14 +284,18 @@ export function HeroBackground({ visible }: { visible: boolean }) {
 
   return (
     <div className="absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
-      {/* CSS gradient fallback - always present underneath */}
-      <div className="absolute inset-0 hero-gradient-fallback" />
+      {/* CSS gradient fallback - fades out when shader loads */}
+      <div
+        className={`absolute inset-0 hero-gradient-fallback transition-opacity duration-1500 ${
+          loaded ? 'opacity-0' : 'opacity-100'
+        }`}
+      />
 
-      {/* WebGL shader canvas */}
+      {/* WebGL shader canvas - fades in over the gradient */}
       {useShader && (
         <canvas
           ref={canvasRef}
-          className={`absolute inset-0 h-full w-full transition-opacity duration-1000 ${
+          className={`absolute inset-0 h-full w-full transition-opacity duration-1500 ${
             loaded ? 'opacity-100' : 'opacity-0'
           }`}
         />

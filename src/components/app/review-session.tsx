@@ -130,16 +130,29 @@ export function ReviewSession() {
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-brand/10 text-accent-brand">
           <Check className="h-8 w-8" aria-hidden="true" />
         </div>
-        <h2 className="font-display text-2xl font-semibold">Nothing due</h2>
-        <p className="mt-2 text-sm text-secondary-recall">
-          You're all caught up. Come back later or add more cards.
+        <h2 className="font-display text-2xl font-semibold">Nothing due right now</h2>
+        <p className="mt-2 max-w-sm text-sm text-secondary-recall">
+          You're all caught up. Your next cards will be due based on the FSRS
+          schedule. Want to get ahead?
         </p>
-        <Button
-          onClick={() => setView('decks')}
-          className="mt-6 bg-accent-brand text-void hover:bg-accent-brand/90"
-        >
-          Back to decks
-        </Button>
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+          <Button
+            onClick={() => setView('decks')}
+            className="bg-accent-brand text-void hover:bg-accent-brand/90"
+          >
+            Browse decks
+          </Button>
+          <Button
+            onClick={() => setView('notes')}
+            variant="ghost"
+            className="border border-hairline bg-card-surface"
+          >
+            Create new cards
+          </Button>
+        </div>
+        <p className="mt-6 text-xs text-muted-recall">
+          Tip: Use <code className="rounded bg-card-surface px-1 text-accent-brand">Term :: Definition</code> in notes to create cards instantly.
+        </p>
       </div>
     )
   }

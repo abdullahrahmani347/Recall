@@ -34,6 +34,9 @@ import {
   Wand2,
   MessageSquare,
   Users,
+  MoreHorizontal,
+  Undo2,
+  Redo2,
 } from 'lucide-react'
 import type { ApiNote, ApiTag } from '@/lib/types'
 import { toast } from 'sonner'
@@ -74,6 +77,13 @@ export function NoteEditor() {
   const [showComments, setShowComments] = useState(false)
   const [showCollaborators, setShowCollaborators] = useState(false)
   const [remoteUpdateBanner, setRemoteUpdateBanner] = useState<string | null>(null)
+  const [showOverflow, setShowOverflow] = useState(false)
+
+  // Undo/redo history — simple stack-based implementation for the textarea
+  const undoStack = useRef<string[]>([])
+  const redoStack = useRef<string[]>([])
+  const [canUndo, setCanUndo] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   // Ref mirror of noteId so the autosave callback always sees the latest
@@ -284,8 +294,38 @@ export function NoteEditor() {
     setDirty(true)
   }
   const onBodyChange = (v: string) => {
+    // Push the previous body to the undo stack before changing
+    if (body !== v) {
+      undoStack.current.push(body)
+      if (undoStack.current.length > 50) undoStack.current.shift()
+      redoStack.current = []
+      setCanUndo(true)
+      setCanRedo(false)
+    }
     setBody(v)
     setDirty(true)
+  }
+
+  const handleUndo = () => {
+    if (undoStack.current.length === 0) return
+    const prev = undoStack.current.pop()!
+    redoStack.current.push(body)
+    setBody(prev)
+    setDirty(true)
+    setCanUndo(undoStack.current.length > 0)
+    setCanRedo(true)
+    requestAnimationFrame(() => textareaRef.current?.focus())
+  }
+
+  const handleRedo = () => {
+    if (redoStack.current.length === 0) return
+    const next = redoStack.current.pop()!
+    undoStack.current.push(body)
+    setBody(next)
+    setDirty(true)
+    setCanUndo(true)
+    setCanRedo(redoStack.current.length > 0)
+    requestAnimationFrame(() => textareaRef.current?.focus())
   }
 
   /**
@@ -572,52 +612,93 @@ export function NoteEditor() {
           </button>
         </div>
 
-        {/* MARKDOWN TOOLBAR */}
-        <div className="mt-6 flex flex-wrap items-center gap-1 rounded-xl border border-hairline bg-card-surface p-1.5">
-          <ToolbarButton onClick={() => insertLinePrefix('# ')} aria-label="Heading 1">
-            <Heading1 className="h-4 w-4" />
+        {/* MARKDOWN TOOLBAR — scrollable on mobile, full on desktop */}
+        <div className="mt-6 flex items-center gap-1 rounded-xl border border-hairline bg-card-surface p-1.5">
+          {/* Undo/Redo — always visible */}
+          <ToolbarButton onClick={handleUndo} aria-label="Undo" disabled={!canUndo}>
+            <Undo2 className="h-4 w-4" />
           </ToolbarButton>
-          <ToolbarButton onClick={() => insertLinePrefix('## ')} aria-label="Heading 2">
-            <Heading2 className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton onClick={() => insertMarkdown('**', '**', 'bold')} aria-label="Bold">
-            <Bold className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton onClick={() => insertMarkdown('_', '_', 'italic')} aria-label="Italic">
-            <Italic className="h-4 w-4" />
+          <ToolbarButton onClick={handleRedo} aria-label="Redo" disabled={!canRedo}>
+            <Redo2 className="h-4 w-4" />
           </ToolbarButton>
           <ToolbarSeparator />
-          <ToolbarButton onClick={() => insertLinePrefix('- ')} aria-label="Bullet list">
-            <List className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton onClick={() => insertLinePrefix('1. ')} aria-label="Numbered list">
-            <ListOrdered className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton onClick={() => insertLinePrefix('> ')} aria-label="Quote">
-            <Quote className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarSeparator />
-          <ToolbarButton onClick={insertCodeBlock} aria-label="Code block">
-            <Code2 className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton onClick={insertTable} aria-label="Table">
-            <TableIcon className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => insertMarkdown('[', '](https://)', 'link text')}
-            aria-label="Link"
-          >
-            <LinkIcon className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => insertMarkdown('![alt text](', ')', 'https://example.com/image.png')}
-            aria-label="Image"
-          >
-            <ImageIcon className="h-4 w-4" />
-          </ToolbarButton>
+
+          {/* Primary formatting — always visible */}
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin">
+            <ToolbarButton onClick={() => insertLinePrefix('# ')} aria-label="Heading 1">
+              <Heading1 className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => insertLinePrefix('## ')} aria-label="Heading 2">
+              <Heading2 className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => insertMarkdown('**', '**', 'bold')} aria-label="Bold">
+              <Bold className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => insertMarkdown('_', '_', 'italic')} aria-label="Italic">
+              <Italic className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => insertLinePrefix('- ')} aria-label="Bullet list">
+              <List className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => insertLinePrefix('1. ')} aria-label="Numbered list">
+              <ListOrdered className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => insertLinePrefix('> ')} aria-label="Quote">
+              <Quote className="h-4 w-4" />
+            </ToolbarButton>
+
+            {/* Secondary formatting — hidden on mobile, shown in overflow */}
+            <div className="hidden items-center gap-1 sm:flex">
+              <ToolbarSeparator />
+              <ToolbarButton onClick={insertCodeBlock} aria-label="Code block">
+                <Code2 className="h-4 w-4" />
+              </ToolbarButton>
+              <ToolbarButton onClick={insertTable} aria-label="Table">
+                <TableIcon className="h-4 w-4" />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => insertMarkdown('[', '](https://)', 'link text')}
+                aria-label="Link"
+              >
+                <LinkIcon className="h-4 w-4" />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => insertMarkdown('![alt text](', ')', 'https://example.com/image.png')}
+                aria-label="Image"
+              >
+                <ImageIcon className="h-4 w-4" />
+              </ToolbarButton>
+            </div>
+          </div>
+
+          {/* Overflow menu for mobile — code, table, link, image */}
+          <div className="relative sm:hidden">
+            <ToolbarButton
+              onClick={() => setShowOverflow(!showOverflow)}
+              aria-label="More formatting"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </ToolbarButton>
+            {showOverflow && (
+              <div className="absolute right-0 top-full z-30 mt-1 flex flex-col gap-1 rounded-lg border border-hairline bg-card-surface p-1.5 shadow-panel">
+                <ToolbarButton onClick={() => { insertCodeBlock(); setShowOverflow(false) }} aria-label="Code block">
+                  <Code2 className="h-4 w-4" />
+                </ToolbarButton>
+                <ToolbarButton onClick={() => { insertTable(); setShowOverflow(false) }} aria-label="Table">
+                  <TableIcon className="h-4 w-4" />
+                </ToolbarButton>
+                <ToolbarButton onClick={() => { insertMarkdown('[', '](https://)', 'link text'); setShowOverflow(false) }} aria-label="Link">
+                  <LinkIcon className="h-4 w-4" />
+                </ToolbarButton>
+                <ToolbarButton onClick={() => { insertMarkdown('![alt text](', ')', 'https://example.com/image.png'); setShowOverflow(false) }} aria-label="Image">
+                  <ImageIcon className="h-4 w-4" />
+                </ToolbarButton>
+              </div>
+            )}
+          </div>
 
           {/* Mode toggle (right side) */}
-          <div className="ml-auto flex items-center gap-0.5 rounded-lg bg-void p-0.5">
+          <div className="ml-auto flex shrink-0 items-center gap-0.5 rounded-lg bg-void p-0.5">
             <ModeButton active={editorMode === 'edit'} onClick={() => setEditorMode('edit')} aria-label="Edit mode">
               <Pencil className="h-3.5 w-3.5" />
             </ModeButton>
@@ -923,18 +1004,21 @@ function ToolbarButton({
   children,
   onClick,
   'aria-label': ariaLabel,
+  disabled = false,
 }: {
   children: React.ReactNode
   onClick: () => void
   'aria-label': string
+  disabled?: boolean
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={ariaLabel}
       title={ariaLabel}
-      className="flex h-8 w-8 items-center justify-center rounded-md text-secondary-recall transition hover:bg-void hover:text-primary-recall"
+      className="flex h-8 w-8 items-center justify-center rounded-md text-secondary-recall transition hover:bg-void hover:text-primary-recall disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
     >
       {children}
     </button>

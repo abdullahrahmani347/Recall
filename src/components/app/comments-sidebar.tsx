@@ -120,16 +120,16 @@ export function CommentsSidebar({
 
   return (
     <>
-      {/* Backdrop on mobile */}
+      {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/40 sm:bg-transparent"
+        className="fixed inset-0 z-40 bg-black/40"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Sidebar */}
+      {/* Sidebar — bottom sheet on mobile, right sidebar on desktop */}
       <aside
-        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-hairline bg-canvas shadow-xl"
+        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col rounded-t-3xl border-t border-hairline bg-canvas shadow-xl sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-full sm:max-w-md sm:rounded-t-none sm:rounded-l-3xl sm:border-l sm:border-t-0"
         role="complementary"
         aria-label="Comments"
       >

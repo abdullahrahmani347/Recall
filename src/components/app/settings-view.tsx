@@ -17,6 +17,7 @@ import {
   Download,
   Upload,
   LogOut,
+  RotateCw,
   Sparkles,
   Loader2,
   Bell,
@@ -442,15 +443,39 @@ export function SettingsView() {
         <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-recall">
           Account
         </h2>
-        <Button
-          variant="ghost"
-          onClick={onLogout}
-          className="border border-hairline bg-void text-grade-again hover:bg-grade-again/10"
-          size="sm"
-        >
-          <LogOut className="mr-1 h-3.5 w-3.5" />
-          Log out
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="ghost"
+            onClick={async () => {
+              try {
+                await api('/api/onboarding', {
+                  method: 'POST',
+                  body: JSON.stringify({ completed: false }),
+                })
+                qc.invalidateQueries({ queryKey: ['onboarding-check'] })
+                qc.invalidateQueries({ queryKey: ['onboarding'] })
+                toast.success('Onboarding reset — reload to retake')
+                setTimeout(() => window.location.reload(), 1000)
+              } catch {
+                toast.error('Failed to reset onboarding')
+              }
+            }}
+            className="border border-hairline bg-void text-secondary-recall hover:text-primary-recall"
+            size="sm"
+          >
+            <RotateCw className="mr-1 h-3.5 w-3.5" />
+            Retake onboarding
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={onLogout}
+            className="border border-hairline bg-void text-grade-again hover:bg-grade-again/10"
+            size="sm"
+          >
+            <LogOut className="mr-1 h-3.5 w-3.5" />
+            Log out
+          </Button>
+        </div>
       </Card>
 
       {saving && (
