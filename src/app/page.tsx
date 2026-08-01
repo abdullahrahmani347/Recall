@@ -23,6 +23,8 @@ import { ViewTransition } from '@/components/app/view-transition'
 import { CommandPalette } from '@/components/app/command-palette'
 import { QuickCapture } from '@/components/app/quick-capture'
 import { GraphView } from '@/components/app/graph-view'
+import { ArticlesView } from '@/components/app/articles-view'
+import { ArticleReader } from '@/components/app/article-reader'
 import { useKeyboardShortcuts, ShortcutsHelpModal } from '@/hooks/use-keyboard-shortcuts'
 import { TemplatePicker } from '@/components/app/template-picker'
 import { CustomStudyPicker } from '@/components/app/custom-study-picker'
@@ -106,6 +108,7 @@ export default function Home() {
 
   if (view === 'note-editor') return <NoteEditor />
   if (view === 'review') return <ReviewSession />
+  if (view === 'article-reader') return <ArticleReader articleId={sessionStorage.getItem('recall-article-id') || ''} />
 
   return (
     <div className="flex min-h-screen flex-col bg-canvas">
@@ -115,6 +118,7 @@ export default function Home() {
           {view === 'home' && <HomeView />}
           {view === 'notes' && <NotesView />}
           {view === 'graph' && <GraphView />}
+          {view === 'articles' && <ArticlesView />}
           {view === 'decks' && <DecksView />}
           {view === 'card-editor' && <CardEditor />}
           {view === 'search' && <SearchView />}

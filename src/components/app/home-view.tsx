@@ -158,6 +158,21 @@ export function HomeView() {
           </div>
         </button>
         <button
+          onClick={() => setView('articles')}
+          className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card-surface p-4 text-left card-lift press"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-brand-dim text-accent-brand transition-smooth group-hover:scale-110">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+            </svg>
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Read article</p>
+            <p className="truncate text-xs text-muted-recall">Paste + highlight + cards</p>
+          </div>
+        </button>
+        <button
           onClick={onCreateDeck}
           className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card-surface p-4 text-left card-lift press"
         >

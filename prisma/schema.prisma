@@ -29,6 +29,7 @@ model User {
   collaborations Collaborator[]
   comments    Comment[]
   onboarding  Onboarding?
+  articles    Article[]
 }
 
 model Settings {
@@ -281,4 +282,47 @@ model Onboarding {
   dailyGoalMinutes Int  @default(15)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// Incremental reading — articles broken into sections with highlights
+model Article {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  sourceUrl   String?
+  rawContent  String   // original pasted text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  sections    ArticleSection[]
+
+  @@index([userId])
+}
+
+model ArticleSection {
+  id          String   @id @default(cuid())
+  articleId   String
+  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  order       Int      // position in the article
+  heading     String
+  content     String   // section text
+  isRead      Boolean  @default(false)
+  highlights  Highlight[]
+
+  @@index([articleId])
+}
+
+model Highlight {
+  id          String   @id @default(cuid())
+  sectionId   String
+  section     ArticleSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  userId      String
+  text        String   // the highlighted text
+  note        String?  // optional user annotation
+  cardType    String   @default("cloze") // "cloze" | "basic"
+  cardId      String?  // linked Flashcard if converted to a card
+  createdAt   DateTime @default(now())
+
+  @@index([sectionId])
+  @@index([userId])
 }

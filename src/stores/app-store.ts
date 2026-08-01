@@ -29,6 +29,8 @@ type View =
   | 'settings'
   | 'analytics'
   | 'graph'
+  | 'articles'
+  | 'article-reader'
 
 interface AppState {
   user: ApiUser | null
