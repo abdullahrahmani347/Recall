@@ -50,6 +50,9 @@ import { PresenceAvatars } from './presence-avatars'
 import { LiveCursors } from './live-cursors'
 import { CommentsSidebar } from './comments-sidebar'
 import { CollaboratorsDialog } from './collaborators-dialog'
+import { RichTextEditor } from './rich-text-editor'
+import { ImageOcclusionEditor } from './image-occlusion-editor'
+import { AudioNoteRecorder } from './audio-note-recorder'
 import { useCollab } from '@/hooks/use-collab'
 import { useAuth } from '@/hooks/use-auth'
 import { formatDistanceToNow } from 'date-fns'
@@ -76,6 +79,7 @@ export function NoteEditor() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
   const [editorMode, setEditorMode] = useState<EditorMode>('edit')
   const [showGenerateCards, setShowGenerateCards] = useState(false)
+  const [showOcclusionEditor, setShowOcclusionEditor] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [showCollaborators, setShowCollaborators] = useState(false)
   const [remoteUpdateBanner, setRemoteUpdateBanner] = useState<string | null>(null)
@@ -755,21 +759,25 @@ export function NoteEditor() {
 
         {/* EDITOR BODY — edit / split / preview */}
         <div className={`mt-4 ${editorMode === 'split' ? 'grid gap-4 lg:grid-cols-2' : ''}`}>
-          {editorMode !== 'preview' && (
+          {editorMode === 'edit' && (
+            <div className="min-h-[60vh]">
+              <RichTextEditor
+                content={body}
+                onChange={onBodyChange}
+                placeholder={`Start writing… Markdown is welcome.\n\n# Heading\n- bullet\n**bold** _italic_\n\nInline card:\nFSRS :: Free Spaced Repetition Scheduler\n\nWiki link:\nThis relates to [[Ebbinghaus]]`}
+              />
+            </div>
+          )}
+          {editorMode === 'split' && (
             <Textarea
               ref={textareaRef}
               value={body}
               onChange={(e) => onBodyChange(e.target.value)}
               onPaste={onPaste}
               onKeyDown={(e) => {
-                // Cmd/Ctrl+Shift+C → cloze deletion
-                if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'c') {
-                  e.preventDefault()
-                  insertCloze()
-                }
+                if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'c') { e.preventDefault(); insertCloze() }
               }}
               onKeyUp={(e) => {
-                // Phase 3: broadcast cursor position for live cursors
                 const ta = e.currentTarget
                 const pos = ta.selectionStart
                 const line = (body.slice(0, pos).match(/\n/g) ?? []).length
@@ -868,6 +876,17 @@ export function NoteEditor() {
               <span className="hidden sm:inline">Make cards</span>
               <span className="sm:hidden">Cards</span>
             </Button>
+            <AudioNoteRecorder
+              onTranscribed={(text) => { setBody((prev) => prev + '\n\n' + text); setDirty(true) }}
+            />
+            <Button
+              onClick={() => setShowOcclusionEditor(true)}
+              variant="ghost"
+              size="sm"
+              className="border border-hairline bg-card-surface"
+            >
+              <span className="text-xs text-muted-recall">Image occlusion</span>
+            </Button>
             <Button
               onClick={onSummarize}
               disabled={!title && !body}
@@ -886,6 +905,30 @@ export function NoteEditor() {
         <GenerateCardsDialog
           noteId={noteId}
           onClose={() => setShowGenerateCards(false)}
+        />
+      )}
+
+      {/* IMAGE OCCLUSION EDITOR */}
+      {showOcclusionEditor && (
+        <ImageOcclusionEditor
+          onClose={() => setShowOcclusionEditor(false)}
+          onCreate={async ({ imageUrl, occlusions }) => {
+            const decksRes = await api<{ decks: { id: string; name: string }[] }>('/api/decks')
+            let deck = decksRes.decks.find((d) => d.name === 'Image Occlusion')
+            if (!deck) {
+              const res = await api<{ deck: { id: string } }>('/api/decks', {
+                method: 'POST',
+                body: JSON.stringify({ name: 'Image Occlusion', description: 'Cards with hidden regions', color: '#4C8CFF' }),
+              })
+              deck = { id: res.deck.id, name: 'Image Occlusion' }
+            }
+            await api('/api/cards/image-occlusion', {
+              method: 'POST',
+              body: JSON.stringify({ deckId: deck.id, imageUrl, occlusions }),
+            })
+            toast.success(`Created ${occlusions.length} image occlusion card${occlusions.length === 1 ? '' : 's'}`)
+            setShowOcclusionEditor(false)
+          }}
         />
       )}
 

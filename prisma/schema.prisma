@@ -167,9 +167,11 @@ model Flashcard {
   deck         Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
   sourceNoteId String?
   sourceNote   Note?    @relation(fields: [sourceNoteId], references: [id], onDelete: SetNull)
-  cardType     String   @default("basic") // "basic" | "cloze"
+  cardType     String   @default("basic") // "basic" | "cloze" | "image-occlusion"
   front        String
   back         String
+  imageUrl     String?  // for image-occlusion cards
+  occlusions   String?  // JSON array of {x, y, w, h} rectangles for image-occlusion cards
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
