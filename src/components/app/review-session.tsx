@@ -12,7 +12,6 @@ import {
   Trophy,
 } from 'lucide-react'
 import { SchedulingExplainer } from './scheduling-explainer'
-import { TtsPlayback } from './tts-playback'
 import type { ApiFlashcard, Grade } from '@/lib/types'
 import { toast } from 'sonner'
 import { formatInterval } from '@/lib/fsrs'
@@ -292,20 +291,6 @@ export function ReviewSession() {
             </div>
           )}
         </div>
-
-        {/* TTS PLAYBACK */}
-        {card && (
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <TtsPlayback
-              text={card.cardType === 'cloze' ? renderClozeFront(card.front, true, card.back) : (card.front || '')}
-              label="Listen"
-              compact
-            />
-            {revealed && card.back && (
-              <TtsPlayback text={card.back} label="Answer" compact />
-            )}
-          </div>
-        )}
 
         {/* ACTIONS */}
         <div className="mt-8 w-full">

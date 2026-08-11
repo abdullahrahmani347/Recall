@@ -2,7 +2,7 @@
 // Mirrors the data model in §6 of the product brief.
 
 generator client {
-  provider     = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
@@ -168,11 +168,9 @@ model Flashcard {
   deck         Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
   sourceNoteId String?
   sourceNote   Note?    @relation(fields: [sourceNoteId], references: [id], onDelete: SetNull)
-  cardType     String   @default("basic") // "basic" | "cloze" | "image-occlusion"
+  cardType     String   @default("basic") // "basic" | "cloze"
   front        String
   back         String
-  imageUrl     String?  // for image-occlusion cards
-  occlusions   String?  // JSON array of {x, y, w, h} rectangles for image-occlusion cards
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
