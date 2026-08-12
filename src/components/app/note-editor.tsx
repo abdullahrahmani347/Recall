@@ -84,6 +84,8 @@ export function NoteEditor() {
   const [showCollaborators, setShowCollaborators] = useState(false)
   const [remoteUpdateBanner, setRemoteUpdateBanner] = useState<string | null>(null)
   const [showOverflow, setShowOverflow] = useState(false)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [showActionsMenu, setShowActionsMenu] = useState(false)
 
   // Undo/redo history — simple stack-based implementation for the textarea
   const undoStack = useRef<string[]>([])
@@ -491,7 +493,7 @@ export function NoteEditor() {
 
   return (
     <div className="flex min-h-screen flex-col bg-canvas">
-      {/* TOP BAR */}
+      {/* TOP BAR — minimal: back, save status, more menu */}
       <header className="sticky top-0 z-20 border-b border-hairline bg-canvas/95 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
           <button
@@ -523,7 +525,7 @@ export function NoteEditor() {
           </div>
 
           <div className="flex items-center gap-1">
-            {/* Phase 3: Presence indicators */}
+            {/* Presence indicators */}
             {noteId && (
               <PresenceAvatars
                 presence={presence}
@@ -531,62 +533,64 @@ export function NoteEditor() {
               />
             )}
 
-            {/* Phase 3: Comments button */}
-            {noteId && (
+            {/* More menu — pin, comments, collaborators, delete */}
+            <div className="relative">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowComments(true)}
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
                 className="h-8 w-8 p-0"
-                aria-label="Comments"
-                title="Comments"
+                aria-label="More options"
+                title="More options"
               >
-                <MessageSquare className="h-4 w-4 text-muted-recall" />
+                <MoreHorizontal className="h-4 w-4 text-muted-recall" />
               </Button>
-            )}
-
-            {/* Phase 3: Collaborators button (only if note is in a notebook) */}
-            {noteId && noteData?.note?.notebookId && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowCollaborators(true)}
-                className="h-8 w-8 p-0"
-                aria-label="Manage collaborators"
-                title="Manage collaborators"
-              >
-                <Users className="h-4 w-4 text-muted-recall" />
-              </Button>
-            )}
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onTogglePin}
-              disabled={!noteId}
-              className="h-8 w-8 p-0"
-              aria-label={noteData?.note.isPinned ? 'Unpin note' : 'Pin note'}
-            >
-              <Pin
-                className={`h-4 w-4 ${
-                  noteData?.note.isPinned ? 'text-accent-warm' : 'text-muted-recall'
-                }`}
-                aria-hidden="true"
-              />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDelete}
-              className="h-8 w-8 p-0 text-muted-recall hover:text-grade-again"
-              aria-label="Delete note"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+              {showMoreMenu && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setShowMoreMenu(false)} />
+                  <div className="absolute right-0 top-full z-40 mt-1 w-48 rounded-lg border border-hairline bg-card-surface py-1 shadow-panel">
+                    <button
+                      onClick={() => { onTogglePin(); setShowMoreMenu(false) }}
+                      disabled={!noteId}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-secondary-recall hover:bg-void disabled:opacity-30"
+                    >
+                      <Pin className={`h-4 w-4 ${noteData?.note.isPinned ? 'text-accent-warm' : ''}`} />
+                      {noteData?.note.isPinned ? 'Unpin note' : 'Pin note'}
+                    </button>
+                    {noteId && (
+                      <button
+                        onClick={() => { setShowComments(true); setShowMoreMenu(false) }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-secondary-recall hover:bg-void"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        Comments
+                      </button>
+                    )}
+                    {noteId && noteData?.note?.notebookId && (
+                      <button
+                        onClick={() => { setShowCollaborators(true); setShowMoreMenu(false) }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-secondary-recall hover:bg-void"
+                      >
+                        <Users className="h-4 w-4" />
+                        Collaborators
+                      </button>
+                    )}
+                    <div className="my-1 border-t border-hairline" />
+                    <button
+                      onClick={() => { onDelete(); setShowMoreMenu(false) }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-grade-again hover:bg-grade-again/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete note
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Phase 3: Remote update banner */}
+        {/* Remote update banner */}
         {remoteUpdateBanner && (
           <div
             className="border-b border-accent-brand/30 bg-accent-brand/10 px-4 py-2 text-center text-xs text-accent-brand"
@@ -651,9 +655,28 @@ export function NoteEditor() {
           </div>
         )}
 
-        {/* MARKDOWN TOOLBAR — scrollable on mobile, full on desktop */}
-        <div className="mt-6 flex items-center gap-1 rounded-xl border border-hairline bg-card-surface p-1.5">
-          {/* Undo/Redo — always visible */}
+        {/* MODE TOGGLE — clean segmented control */}
+        <div className="mt-6 flex items-center justify-center">
+          <div className="flex items-center gap-0.5 rounded-lg bg-void p-0.5">
+            <ModeButton active={editorMode === 'edit'} onClick={() => setEditorMode('edit')} aria-label="Edit mode">
+              <Pencil className="h-3.5 w-3.5" />
+              <span className="ml-1 text-xs">Edit</span>
+            </ModeButton>
+            <ModeButton active={editorMode === 'split'} onClick={() => setEditorMode('split')} aria-label="Split mode">
+              <Columns2 className="h-3.5 w-3.5" />
+              <span className="ml-1 text-xs">Split</span>
+            </ModeButton>
+            <ModeButton active={editorMode === 'preview'} onClick={() => setEditorMode('preview')} aria-label="Preview mode">
+              <Eye className="h-3.5 w-3.5" />
+              <span className="ml-1 text-xs">Preview</span>
+            </ModeButton>
+          </div>
+        </div>
+
+        {/* FORMATTING TOOLBAR — only in split mode (edit mode uses RichTextEditor's own toolbar) */}
+        {editorMode === 'split' && (
+        <div className="mt-3 flex items-center gap-1 rounded-xl border border-hairline bg-card-surface p-1.5">
+          {/* Undo/Redo */}
           <ToolbarButton onClick={handleUndo} aria-label="Undo" disabled={!canUndo}>
             <Undo2 className="h-4 w-4" />
           </ToolbarButton>
@@ -662,7 +685,7 @@ export function NoteEditor() {
           </ToolbarButton>
           <ToolbarSeparator />
 
-          {/* Primary formatting — always visible */}
+          {/* Formatting — horizontally scrollable on mobile */}
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin">
             <ToolbarButton onClick={() => insertLinePrefix('# ')} aria-label="Heading 1">
               <Heading1 className="h-4 w-4" />
@@ -735,20 +758,8 @@ export function NoteEditor() {
               </div>
             )}
           </div>
-
-          {/* Mode toggle (right side) */}
-          <div className="ml-auto flex shrink-0 items-center gap-0.5 rounded-lg bg-void p-0.5">
-            <ModeButton active={editorMode === 'edit'} onClick={() => setEditorMode('edit')} aria-label="Edit mode">
-              <Pencil className="h-3.5 w-3.5" />
-            </ModeButton>
-            <ModeButton active={editorMode === 'split'} onClick={() => setEditorMode('split')} aria-label="Split mode">
-              <Columns2 className="h-3.5 w-3.5" />
-            </ModeButton>
-            <ModeButton active={editorMode === 'preview'} onClick={() => setEditorMode('preview')} aria-label="Preview mode">
-              <Eye className="h-3.5 w-3.5" />
-            </ModeButton>
-          </div>
         </div>
+        )}
 
         {/* Phase 3: Live cursor indicators */}
         {noteId && editorMode !== 'preview' && (
@@ -852,7 +863,7 @@ export function NoteEditor() {
         )}
       </main>
 
-      {/* ACTION BAR */}
+      {/* ACTION BAR — clean: word count, primary action, more menu */}
       <footer
         className="sticky bottom-0 z-20 border-t border-hairline bg-canvas/95 backdrop-blur"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
@@ -862,34 +873,51 @@ export function NoteEditor() {
             {body.trim().split(/\s+/).filter(Boolean).length} words
           </p>
           <div className="flex items-center gap-2">
-            <Button
-              onClick={() => {
-                if (dirty) {
-                  save().then(() => setShowGenerateCards(true))
-                } else {
-                  setShowGenerateCards(true)
-                }
-              }}
-              disabled={!title && !body}
-              variant="ghost"
-              size="sm"
-              className="border border-hairline bg-card-surface"
-            >
-              <Wand2 className="mr-1 h-4 w-4 text-accent-warm" />
-              <span className="hidden sm:inline">Make cards</span>
-              <span className="sm:hidden">Cards</span>
-            </Button>
-            <AudioNoteRecorder
-              onTranscribed={(text) => { setBody((prev) => prev + '\n\n' + text); setDirty(true) }}
-            />
-            <Button
-              onClick={() => setShowOcclusionEditor(true)}
-              variant="ghost"
-              size="sm"
-              className="border border-hairline bg-card-surface"
-            >
-              <span className="text-xs text-muted-recall">Image occlusion</span>
-            </Button>
+            {/* Secondary actions in a dropdown */}
+            <div className="relative">
+              <Button
+                onClick={() => setShowActionsMenu(!showActionsMenu)}
+                variant="ghost"
+                size="sm"
+                className="border border-hairline bg-card-surface"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+                <span className="ml-1 hidden sm:inline">More</span>
+              </Button>
+              {showActionsMenu && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setShowActionsMenu(false)} />
+                  <div className="absolute right-0 bottom-full z-40 mb-1 w-52 rounded-lg border border-hairline bg-card-surface py-1 shadow-panel">
+                    <button
+                      onClick={() => {
+                        if (dirty) { save().then(() => setShowGenerateCards(true)) }
+                        else { setShowGenerateCards(true) }
+                        setShowActionsMenu(false)
+                      }}
+                      disabled={!title && !body}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-secondary-recall hover:bg-void disabled:opacity-30"
+                    >
+                      <Wand2 className="h-4 w-4 text-accent-warm" />
+                      Make cards
+                    </button>
+                    <div className="px-3 py-2">
+                      <AudioNoteRecorder
+                        onTranscribed={(text) => { setBody((prev) => prev + '\n\n' + text); setDirty(true) }}
+                      />
+                    </div>
+                    <button
+                      onClick={() => { setShowOcclusionEditor(true); setShowActionsMenu(false) }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-secondary-recall hover:bg-void"
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                      Image occlusion
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Primary action */}
             <Button
               onClick={onSummarize}
               disabled={!title && !body}
@@ -1141,7 +1169,7 @@ function ModeButton({
       onClick={onClick}
       aria-label={ariaLabel}
       aria-pressed={active}
-      className={`flex h-7 w-7 items-center justify-center rounded transition ${
+      className={`flex h-7 items-center justify-center rounded px-2.5 transition ${
         active
           ? 'bg-card-surface text-accent-brand'
           : 'text-muted-recall hover:text-primary-recall'
