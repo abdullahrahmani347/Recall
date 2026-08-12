@@ -19,6 +19,7 @@ has_python_sources() {
         -o -name 'mini-services' \
         -o -name 'upload' \
         -o -name 'download' \
+        -o -name 'skills' \
         \) -prune \) \
         -o -type f \( -name '*.py' -o -name '*.pyi' \) -print -quit | grep -q .
 }
@@ -111,6 +112,7 @@ if has_python_sources; then
             -o -name 'mini-services' \
             -o -name 'upload' \
             -o -name 'download' \
+            -o -name 'skills' \
             \) -prune \) \
             -o -type f \( -name '*.py' -o -name '*.pyi' \) -print0 \
             | tar --null -T - -cf -
