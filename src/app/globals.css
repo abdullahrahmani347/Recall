@@ -327,6 +327,9 @@
   .border-subtle { border-color: var(--border-subtle); }
 
   .bg-accent-brand-dim { background-color: var(--accent-brand-dim); }
+  .bg-accent-brand { background-color: var(--accent-brand); }
+  .text-void { color: var(--void); }
+  .bg-accent-warm { background-color: var(--accent-warm); }
 
   /* Grade colors — only on the review screen */
   .bg-grade-again { background-color: var(--grade-again); }
