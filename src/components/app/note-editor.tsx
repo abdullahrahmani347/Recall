@@ -543,7 +543,7 @@ export function NoteEditor() {
                 aria-label="More options"
                 title="More options"
               >
-                <MoreHorizontal className="h-4 w-4 text-muted-recall" />
+                <MoreHorizontal className="h-4 w-4 text-secondary-recall" />
               </Button>
               {showMoreMenu && (
                 <>
@@ -552,7 +552,7 @@ export function NoteEditor() {
                     <button
                       onClick={() => { onTogglePin(); setShowMoreMenu(false) }}
                       disabled={!noteId}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-secondary-recall hover:bg-void disabled:opacity-30"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-primary-recall hover:bg-accent-brand-dim disabled:opacity-30"
                     >
                       <Pin className={`h-4 w-4 ${noteData?.note.isPinned ? 'text-accent-warm' : ''}`} />
                       {noteData?.note.isPinned ? 'Unpin note' : 'Pin note'}
@@ -560,7 +560,7 @@ export function NoteEditor() {
                     {noteId && (
                       <button
                         onClick={() => { setShowComments(true); setShowMoreMenu(false) }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-secondary-recall hover:bg-void"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-primary-recall hover:bg-accent-brand-dim"
                       >
                         <MessageSquare className="h-4 w-4" />
                         Comments
@@ -569,7 +569,7 @@ export function NoteEditor() {
                     {noteId && noteData?.note?.notebookId && (
                       <button
                         onClick={() => { setShowCollaborators(true); setShowMoreMenu(false) }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-secondary-recall hover:bg-void"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-primary-recall hover:bg-accent-brand-dim"
                       >
                         <Users className="h-4 w-4" />
                         Collaborators
@@ -657,7 +657,7 @@ export function NoteEditor() {
 
         {/* MODE TOGGLE — clean segmented control */}
         <div className="mt-6 flex items-center justify-center">
-          <div className="flex items-center gap-0.5 rounded-lg bg-void p-0.5">
+          <div className="flex items-center gap-1 rounded-xl border border-hairline bg-card-surface p-1">
             <ModeButton active={editorMode === 'edit'} onClick={() => setEditorMode('edit')} aria-label="Edit mode">
               <Pencil className="h-3.5 w-3.5" />
               <span className="ml-1 text-xs">Edit</span>
@@ -895,7 +895,7 @@ export function NoteEditor() {
                         setShowActionsMenu(false)
                       }}
                       disabled={!title && !body}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-secondary-recall hover:bg-void disabled:opacity-30"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-primary-recall hover:bg-accent-brand-dim disabled:opacity-30"
                     >
                       <Wand2 className="h-4 w-4 text-accent-warm" />
                       Make cards
@@ -907,7 +907,7 @@ export function NoteEditor() {
                     </div>
                     <button
                       onClick={() => { setShowOcclusionEditor(true); setShowActionsMenu(false) }}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-secondary-recall hover:bg-void"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-primary-recall hover:bg-accent-brand-dim"
                     >
                       <ImageIcon className="h-4 w-4" />
                       Image occlusion
@@ -1023,7 +1023,7 @@ export function NoteEditor() {
                               : [...selectedTagIds, tag.id]
                           )
                         }
-                        className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition hover:bg-void"
+                        className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition hover:bg-accent-brand-dim"
                       >
                         <span
                           className="h-3 w-3 rounded-full"
@@ -1141,7 +1141,7 @@ function ToolbarButton({
       disabled={disabled}
       aria-label={ariaLabel}
       title={ariaLabel}
-      className="flex h-8 w-8 items-center justify-center rounded-md text-secondary-recall transition hover:bg-void hover:text-primary-recall disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+      className="flex h-8 w-8 items-center justify-center rounded-md text-primary-recall transition hover:bg-accent-brand-dim hover:text-accent-brand disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-primary-recall"
     >
       {children}
     </button>
@@ -1169,10 +1169,10 @@ function ModeButton({
       onClick={onClick}
       aria-label={ariaLabel}
       aria-pressed={active}
-      className={`flex h-7 items-center justify-center rounded px-2.5 transition ${
+      className={`flex h-8 items-center justify-center rounded-md px-3 text-sm font-medium transition ${
         active
-          ? 'bg-card-surface text-accent-brand'
-          : 'text-muted-recall hover:text-primary-recall'
+          ? 'bg-accent-brand text-void shadow-sm'
+          : 'text-secondary-recall hover:text-primary-recall hover:bg-card-surface'
       }`}
     >
       {children}
