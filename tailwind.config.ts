@@ -11,6 +11,7 @@ const config: Config = {
   theme: {
         extend: {
                 colors: {
+                        // shadcn/ui colors (DO NOT REMOVE — used by all UI components)
                         background: 'hsl(var(--background))',
                         foreground: 'hsl(var(--foreground))',
                         card: {
@@ -50,17 +51,9 @@ const config: Config = {
                                 '3': 'hsl(var(--chart-3))',
                                 '4': 'hsl(var(--chart-4))',
                                 '5': 'hsl(var(--chart-5))'
-                        }
-                },
-                borderRadius: {
-                        lg: 'var(--radius)',
-                        md: 'calc(var(--radius) - 2px)',
-                        sm: 'calc(var(--radius) - 4px)'
-                },
-                // Recall custom colors — mapped to CSS variables so Tailwind
-                // generates bg-*, text-*, border-* utilities WITH opacity support
-                // (e.g. bg-accent-brand/90, text-accent-brand/80)
-                colors: {
+                        },
+                        // Recall custom colors — mapped to CSS variables so Tailwind
+                        // generates bg-*, text-*, border-* utilities WITH opacity support
                         'accent-brand': 'var(--accent-brand)',
                         'accent-warm': 'var(--accent-warm)',
                         'canvas': 'var(--canvas)',
@@ -75,6 +68,11 @@ const config: Config = {
                         'grade-hard': 'var(--grade-hard)',
                         'grade-good': 'var(--grade-good)',
                         'grade-easy': 'var(--grade-easy)',
+                },
+                borderRadius: {
+                        lg: 'var(--radius)',
+                        md: 'calc(var(--radius) - 2px)',
+                        sm: 'calc(var(--radius) - 4px)'
                 },
         }
   },
