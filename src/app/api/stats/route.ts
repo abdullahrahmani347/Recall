@@ -54,16 +54,32 @@ export async function GET() {
     if (!reviewDays.has(todayKey)) {
       cursor.setDate(cursor.getDate() - 1)
     }
+    // Get streak freeze info — if a freeze was used, skip one missing day
+    const settings = await db.settings.findUnique({ where: { userId: user!.id } })
+    let freezeUsed = false
     while (true) {
       const key = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`
       if (reviewDays.has(key)) {
         streak++
         cursor.setDate(cursor.getDate() - 1)
+      } else if (!freezeUsed && settings?.lastFreezeDate) {
+        // Check if this missed day matches the freeze date
+        const freezeDate = settings.lastFreezeDate
+        const cursorDateStr = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`
+        if (cursorDateStr === freezeDate) {
+          // Skip this day — freeze protects it
+          freezeUsed = true
+          cursor.setDate(cursor.getDate() - 1)
+          continue
+        }
+        break
       } else {
         break
       }
     }
   }
+
+  const settingsData = await db.settings.findUnique({ where: { userId: user!.id } })
 
   return NextResponse.json({
     noteCount,
@@ -72,5 +88,6 @@ export async function GET() {
     dueCount,
     todayReviews,
     streak,
+    streakFreezes: settingsData?.streakFreezes ?? 0,
   })
 }

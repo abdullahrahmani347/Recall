@@ -5,7 +5,7 @@ import { api } from '@/lib/api-client'
 import { useAppStore } from '@/stores/app-store'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Plus, ChevronRight } from 'lucide-react'
+import { Plus, ChevronRight, Snowflake } from 'lucide-react'
 import {
   FlameIcon,
   NotebookIcon,
@@ -24,6 +24,7 @@ interface Stats {
   dueCount: number
   todayReviews: number
   streak: number
+  streakFreezes?: number
 }
 
 export function HomeView() {
@@ -119,11 +120,17 @@ export function HomeView() {
           <div className="flex flex-col items-end gap-3">
             <div
               className="flex items-center gap-1.5 rounded-full border border-accent-warm/20 bg-accent-warm/10 px-3 py-1.5 text-sm text-accent-warm"
-              title="Current review streak"
+              title={`Current review streak — ${stats?.streakFreezes ?? 0} freeze${(stats?.streakFreezes ?? 0) === 1 ? '' : 's'} available`}
             >
               <FlameIcon size={16} aria-hidden="true" />
               <span className="font-semibold tabular-nums">{streak}</span>
               <span className="text-muted-recall">day{streak === 1 ? '' : 's'}</span>
+              {(stats?.streakFreezes ?? 0) > 0 && (
+                <span className="ml-1 flex items-center gap-0.5 text-accent-brand" title="Streak freeze available">
+                  <Snowflake size={12} aria-hidden />
+                  <span className="text-xs tabular-nums">{stats!.streakFreezes}</span>
+                </span>
+              )}
             </div>
             <Button
               disabled={dueCount === 0}
@@ -138,6 +145,12 @@ export function HomeView() {
               className="text-[11px] text-muted-recall hover:text-accent-brand"
             >
               Custom study
+            </button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('recall-study-plan'))}
+              className="text-[11px] text-muted-recall hover:text-accent-warm"
+            >
+              Study plan
             </button>
           </div>
         </div>

@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
   }
 
   const cards = await db.flashcard.findMany({
-    where: whereClause,
+    where: { ...whereClause, isSuspended: false, isBuried: false },
     include: {
       schedulingState: true,
       deck: { select: { id: true, name: true, color: true } },

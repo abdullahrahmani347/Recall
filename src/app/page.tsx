@@ -28,12 +28,14 @@ import { ArticleReader } from '@/components/app/article-reader'
 import { useKeyboardShortcuts, ShortcutsHelpModal } from '@/hooks/use-keyboard-shortcuts'
 import { TemplatePicker } from '@/components/app/template-picker'
 import { CustomStudyPicker } from '@/components/app/custom-study-picker'
+import { StudyPlanGenerator } from '@/components/app/study-plan-generator'
 import { Loader2 } from 'lucide-react'
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [showCustomStudy, setShowCustomStudy] = useState(false)
+  const [showStudyPlan, setShowStudyPlan] = useState(false)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -55,6 +57,12 @@ export default function Home() {
     const onCustomStudy = () => setShowCustomStudy(true)
     window.addEventListener('recall-custom-study', onCustomStudy)
     return () => window.removeEventListener('recall-custom-study', onCustomStudy)
+  }, [])
+
+  useEffect(() => {
+    const onStudyPlan = () => setShowStudyPlan(true)
+    window.addEventListener('recall-study-plan', onStudyPlan)
+    return () => window.removeEventListener('recall-study-plan', onStudyPlan)
   }, [])
 
   const { data: onboardingData, isLoading: onboardingLoading } = useQuery({
@@ -146,6 +154,9 @@ export default function Home() {
           deckId={null}
           onClose={() => setShowCustomStudy(false)}
         />
+      )}
+      {showStudyPlan && (
+        <StudyPlanGenerator onClose={() => setShowStudyPlan(false)} />
       )}
     </div>
   )

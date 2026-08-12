@@ -10,6 +10,9 @@ import {
   RotateCw,
   Check,
   Trophy,
+  Pencil,
+  Snowflake,
+  Ban,
 } from 'lucide-react'
 import { SchedulingExplainer } from './scheduling-explainer'
 import { TtsPlayback } from './tts-playback'
@@ -45,6 +48,9 @@ export function ReviewSession() {
   const [sessionGrades, setSessionGrades] = useState<Grade[]>([])
   const [cardStartTime, setCardStartTime] = useState(() => Date.now())
   const [showHistory, setShowHistory] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editFront, setEditFront] = useState('')
+  const [editBack, setEditBack] = useState('')
 
   // Check for custom study mode (set by CustomStudyPicker)
   const customMode = typeof window !== 'undefined' ? sessionStorage.getItem('recall-custom-mode') : null
@@ -110,6 +116,66 @@ export function ReviewSession() {
     },
     [card, revealed, reviewMutation, cardStartTime, qc]
   )
+
+  // Feature 8: Inline card editing
+  const startEdit = () => {
+    if (!card) return
+    setEditFront(card.front)
+    setEditBack(card.back)
+    setIsEditing(true)
+  }
+
+  const saveEdit = async () => {
+    if (!card) return
+    try {
+      await api(`/api/cards/${card.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ front: editFront, back: editBack }),
+      })
+      // Update the card in the local queue
+      if (data) {
+        const updatedCards = [...data.cards]
+        if (updatedCards[index]) {
+          updatedCards[index] = { ...updatedCards[index], front: editFront, back: editBack }
+        }
+        qc.setQueryData(['review-queue', reviewDeckId, customMode], { ...data, cards: updatedCards })
+      }
+      toast.success('Card updated')
+      setIsEditing(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update card')
+    }
+  }
+
+  // Feature 9: Bury card (hide until tomorrow)
+  const buryCard = async () => {
+    if (!card) return
+    try {
+      await api(`/api/cards/${card.id}/bury`, { method: 'POST' })
+      toast.success('Card buried until tomorrow')
+      setRevealed(false)
+      setCardStartTime(Date.now())
+      setIndex((i) => i + 1)
+      qc.invalidateQueries({ queryKey: ['review-queue'] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to bury card')
+    }
+  }
+
+  // Feature 9: Suspend card (hide indefinitely)
+  const suspendCard = async () => {
+    if (!card) return
+    try {
+      await api(`/api/cards/${card.id}/suspend`, { method: 'POST', body: JSON.stringify({ suspend: true }) })
+      toast.success('Card suspended')
+      setRevealed(false)
+      setCardStartTime(Date.now())
+      setIndex((i) => i + 1)
+      qc.invalidateQueries({ queryKey: ['review-queue'] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to suspend card')
+    }
+  }
 
   // Keyboard shortcuts: 1-4 grade, Space to reveal
   useEffect(() => {
@@ -341,18 +407,16 @@ export function ReviewSession() {
           )}
         </div>
 
-        {/* CONTEXT — source note link + review history toggle */}
+        {/* CONTEXT — source note link + edit/bury/suspend + review history toggle */}
         {card && (
           <div className="mt-6 border-t border-hairline pt-4">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               {card.sourceNoteId ? (
                 <button
                   onClick={() => {
-                    // Clear custom mode so it doesn't interfere
                     sessionStorage.removeItem('recall-custom-mode')
                     sessionStorage.removeItem('recall-custom-deck')
                     setView('notes')
-                    // The note will be opened via a timeout to let the view switch first
                     setTimeout(() => openNote(card.sourceNoteId!), 200)
                   }}
                   className="text-xs text-accent-brand hover:underline"
@@ -362,12 +426,20 @@ export function ReviewSession() {
               ) : (
                 <span className="text-xs text-muted-recall">No source note</span>
               )}
-              <button
-                onClick={() => setShowHistory(!showHistory)}
-                className="text-xs text-muted-recall hover:text-primary-recall"
-              >
-                {showHistory ? 'Hide history' : 'Show history'}
-              </button>
+              <div className="flex items-center gap-3">
+                <button onClick={startEdit} className="flex items-center gap-1 text-xs text-muted-recall hover:text-accent-brand" aria-label="Edit card">
+                  <Pencil size={12} />Edit
+                </button>
+                <button onClick={buryCard} className="flex items-center gap-1 text-xs text-muted-recall hover:text-accent-warm" title="Hide until tomorrow">
+                  <Snowflake size={12} />Bury
+                </button>
+                <button onClick={suspendCard} className="flex items-center gap-1 text-xs text-muted-recall hover:text-grade-again" title="Hide indefinitely">
+                  <Ban size={12} />Suspend
+                </button>
+                <button onClick={() => setShowHistory(!showHistory)} className="text-xs text-muted-recall hover:text-primary-recall">
+                  {showHistory ? 'Hide history' : 'Show history'}
+                </button>
+              </div>
             </div>
             {showHistory && card && (
               <CardHistory cardId={card.id} />
@@ -382,6 +454,51 @@ export function ReviewSession() {
           </div>
         )}
       </main>
+
+      {/* INLINE CARD EDITOR (Feature 8) */}
+      {isEditing && card && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setIsEditing(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-hairline bg-card-surface p-6 shadow-floating animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Edit card"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-display text-lg font-semibold">Edit Card</h3>
+              <button onClick={() => setIsEditing(false)} className="text-muted-recall hover:text-primary-recall">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-widest text-muted-recall">Front (Question)</label>
+                <textarea
+                  value={editFront}
+                  onChange={(e) => setEditFront(e.target.value)}
+                  className="min-h-[100px] w-full resize-none rounded-lg border border-hairline bg-void p-3 text-sm focus:border-accent-brand focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-widest text-muted-recall">Back (Answer)</label>
+                <textarea
+                  value={editBack}
+                  onChange={(e) => setEditBack(e.target.value)}
+                  className="min-h-[100px] w-full resize-none rounded-lg border border-hairline bg-void p-3 text-sm focus:border-accent-brand focus:outline-none"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button onClick={() => setIsEditing(false)} variant="ghost" size="sm">Cancel</Button>
+                <Button onClick={saveEdit} className="bg-accent-brand text-void hover:bg-accent-brand/90" size="sm">Save</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER HINT */}
       <footer className="border-t border-hairline px-4 py-2 sm:px-6">

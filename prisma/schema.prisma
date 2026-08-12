@@ -46,6 +46,9 @@ model Settings {
   reminderTime       String?  // "HH:MM" in user's timezone, null = disabled
   reminderEmailEnabled Boolean @default(false)
   reminderEmail      String?  // optional override email
+  // Streak protection: grace days that prevent streak from resetting
+  streakFreezes      Int      @default(1) // available freeze count
+  lastFreezeDate     String?  // YYYY-MM-DD when a freeze was last used
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -173,6 +176,8 @@ model Flashcard {
   back         String
   imageUrl     String?  // for image-occlusion cards
   occlusions   String?  // JSON: {x, y, w, h, label} for image-occlusion cards
+  isBuried     Boolean  @default(false) // hidden until tomorrow
+  isSuspended  Boolean  @default(false) // hidden indefinitely
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -313,8 +318,27 @@ model ArticleSection {
   content     String   // section text
   isRead      Boolean  @default(false)
   highlights  Highlight[]
+  sectionSchedule SectionSchedule?
 
   @@index([articleId])
+}
+
+// Feature 6: Spaced repetition for article sections (incremental reading)
+// Each section gets its own FSRS-style schedule so the user reads
+// section 1 today, section 2 tomorrow, section 1 again in 3 days, etc.
+model SectionSchedule {
+  id              String   @id @default(cuid())
+  sectionId       String   @unique
+  section         ArticleSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  dueDate         DateTime @default(now())
+  stability       Float    @default(0.4)
+  difficulty      Float    @default(0.5)
+  interval        Float    @default(0) // in days
+  repetitions     Int      @default(0)
+  lapses          Int      @default(0)
+  lastReviewedAt  DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Highlight {
