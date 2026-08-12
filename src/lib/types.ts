@@ -61,6 +61,8 @@ export interface ApiFlashcard {
   cardType: string
   front: string
   back: string
+  imageUrl?: string | null
+  occlusions?: string | null
   createdAt: string
   updatedAt: string
   schedulingState?: ApiSchedulingState | null
