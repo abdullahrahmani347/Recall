@@ -236,7 +236,7 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
                   'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition',
                   i === autocomplete.selected
                     ? 'bg-accent-brand-dim text-accent-brand'
-                    : 'text-secondary-recall hover:bg-void'
+                    : 'text-secondary-recall hover:bg-accent-brand-dim hover:text-accent-brand'
                 )}
               >
                 <span className="truncate">{s.title || 'Untitled'}</span>
@@ -250,6 +250,32 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
 }
 
 const editorStyles = `
+  /* Override MDX editor's hardcoded light theme variables.
+     The MDX editor sets --basePageBg: white in its CSS module class,
+     which makes the editor background white even in dark mode.
+     We override ALL the base variables to use the app's dark palette. */
+  .rich-text-editor .mdxeditor {
+    --basePageBg: var(--card-surface);
+    --baseBase: var(--void);
+    --baseBgSubtle: var(--card-surface);
+    --baseBg: var(--void);
+    --baseBgHover: var(--accent-brand-dim);
+    --baseBgActive: var(--accent-brand-dim);
+    --baseLine: var(--border-hairline);
+    --baseBorder: var(--border-hairline);
+    --baseBorderHover: var(--accent-brand);
+    --baseSolid: var(--accent-brand);
+    --baseSolidHover: var(--accent-brand);
+    --baseText: var(--text-secondary);
+    --baseTextContrast: var(--text-primary);
+    --accentBase: var(--accent-brand-dim);
+    --accentBgSubtle: var(--accent-brand-dim);
+    --accentBg: var(--accent-brand-dim);
+    --accentBgHover: var(--accent-brand-dim);
+    --accentBgActive: var(--accent-brand-dim);
+    --accentText: var(--accent-brand);
+    --accentTextContrast: var(--accent-brand);
+  }
   .rich-text-editor .mdxeditor {
     border: 1px solid var(--border-hairline);
     border-radius: 12px;
