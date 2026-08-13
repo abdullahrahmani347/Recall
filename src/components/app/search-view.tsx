@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
 import { useAppStore } from '@/stores/app-store'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { Search as SearchIcon, Notebook, Layers, Sparkles } from 'lucide-react'
+import { Search as SearchIcon, Notebook, Layers, Sparkles, MessageSquare, Loader2 } from 'lucide-react'
 import type { ApiNote, ApiFlashcard, ApiTag, SemanticSearchResult } from '@/lib/types'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -18,6 +18,9 @@ export function SearchView() {
   const [type, setType] = useState<'all' | 'notes' | 'cards'>('all')
   const [tagId, setTagId] = useState<string | null>(null)
   const [semantic, setSemantic] = useState(false)
+  const [nlSearch, setNlSearch] = useState(false)
+  const [nlResults, setNlResults] = useState<{ notes: ApiNote[]; cards: ApiFlashcard[] } | null>(null)
+  const [nlInterpretation, setNlInterpretation] = useState('')
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQ(q), semantic ? 400 : 250)
@@ -48,6 +51,25 @@ export function SearchView() {
   const isFetching = keywordQuery.isFetching || semanticQuery.isFetching
   const notes = keywordQuery.data?.notes ?? []
   const cards = keywordQuery.data?.cards ?? []
+
+  // Feature 19: Natural language search
+  const nlSearchMutation = useMutation({
+    mutationFn: (query: string) =>
+      api<{ results: { notes: ApiNote[]; cards: ApiFlashcard[] }; interpretation: string }>(
+        '/api/ai/nl-search',
+        { method: 'POST', body: JSON.stringify({ query }) }
+      ),
+    onSuccess: (data) => {
+      setNlResults(data.results)
+      setNlInterpretation(data.interpretation)
+    },
+  })
+
+  const handleNlSearch = () => {
+    if (!q.trim()) return
+    setNlSearch(true)
+    nlSearchMutation.mutate(q)
+  }
   const semanticResults = semanticQuery.data?.results ?? []
 
   const { data: tagsData } = useQuery<{ tags: (ApiTag & { noteCount: number })[] }>({
@@ -100,7 +122,7 @@ export function SearchView() {
         )}
         <button
           onClick={() => setSemantic((v) => !v)}
-          className={`ml-auto flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-smooth press ${
+          className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-smooth press ${
             semantic
               ? 'border-accent-warm bg-accent-warm/10 text-accent-warm'
               : 'border-hairline bg-card-surface text-secondary-recall hover:text-primary-recall'
@@ -109,6 +131,19 @@ export function SearchView() {
         >
           <Sparkles className="h-3 w-3" />
           {semantic ? 'Semantic on' : 'Semantic'}
+        </button>
+        <button
+          onClick={handleNlSearch}
+          disabled={!q.trim() || nlSearchMutation.isPending}
+          className={`ml-auto flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-smooth press disabled:opacity-50 ${
+            nlSearch
+              ? 'border-accent-brand bg-accent-brand-dim text-accent-brand'
+              : 'border-hairline bg-card-surface text-secondary-recall hover:text-primary-recall'
+          }`}
+          title="Ask a question in natural language — the AI parses intent and finds matching notes/cards"
+        >
+          {nlSearchMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <MessageSquare className="h-3 w-3" />}
+          {nlSearch ? 'AI Search active' : 'AI Search'}
         </button>
       </div>
 
@@ -147,7 +182,83 @@ export function SearchView() {
       ) : null}
 
       {/* Results */}
-      {!debouncedQ ? (
+      {/* NL search interpretation + results */}
+      {nlSearch && nlResults && (
+        <div className="mb-4 animate-fade-in-up rounded-lg border border-accent-brand/30 bg-accent-brand-dim p-3">
+          <p className="text-xs font-medium text-accent-brand">{nlInterpretation}</p>
+          <p className="mt-1 text-xs text-muted-recall">
+            Found {nlResults.notes.length} note{nlResults.notes.length === 1 ? '' : 's'} and {nlResults.cards.length} card{nlResults.cards.length === 1 ? '' : 's'}
+          </p>
+        </div>
+      )}
+      {nlSearch && nlSearchMutation.isPending && (
+        <Card className="border border-dashed border-hairline bg-card-surface/50 p-10 text-center text-sm text-muted-recall animate-fade-in">
+          <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-accent-brand" />
+          AI is parsing your query…
+        </Card>
+      )}
+      {nlSearch && nlResults && !nlSearchMutation.isPending && (
+        <div className="space-y-4 animate-fade-in">
+          {nlResults.notes.length === 0 && nlResults.cards.length === 0 ? (
+            <Card className="border border-dashed border-hairline bg-card-surface/50 p-10 text-center text-sm text-muted-recall">
+              No results found for your query.
+            </Card>
+          ) : (
+            <>
+              {nlResults.notes.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-widest text-muted-recall">
+                    Notes ({nlResults.notes.length})
+                  </p>
+                  <div className="space-y-2">
+                    {nlResults.notes.map((note) => (
+                      <Card
+                        key={note.id}
+                        className="cursor-pointer border border-hairline bg-card-surface p-3 transition hover:border-accent-brand/50"
+                        onClick={() => openNote(note.id)}
+                      >
+                        <p className="font-medium text-primary-recall">{note.title || 'Untitled'}</p>
+                        <p className="mt-1 text-xs text-muted-recall line-clamp-2">
+                          {note.contentPlainText?.slice(0, 120)}
+                        </p>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {nlResults.cards.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-widest text-muted-recall">
+                    Cards ({nlResults.cards.length})
+                  </p>
+                  <div className="space-y-2">
+                    {nlResults.cards.map((card) => (
+                      <Card
+                        key={card.id}
+                        className="cursor-pointer border border-hairline bg-card-surface p-3"
+                        onClick={() => openDeck(card.deckId)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="flex-1 text-sm text-primary-recall line-clamp-1">{card.front}</span>
+                          {card.deck && (
+                            <span
+                              className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                              style={{ backgroundColor: `${card.deck.color}20`, color: card.deck.color }}
+                            >
+                              {card.deck.name}
+                            </span>
+                          )}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+      {!nlSearch && !debouncedQ ? (
         <Card className="border border-dashed border-hairline bg-card-surface/50 p-10 text-center text-sm text-muted-recall animate-fade-in">
           <SearchIcon className="mx-auto mb-3 h-8 w-8 text-muted-recall" aria-hidden="true" />
           {semantic

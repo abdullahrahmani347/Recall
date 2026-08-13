@@ -5,7 +5,7 @@ import { api } from '@/lib/api-client'
 import { useAppStore } from '@/stores/app-store'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Plus, ChevronRight } from 'lucide-react'
+import { Plus, ChevronRight, Snowflake, Image as ImageIcon, Network, Brain } from 'lucide-react'
 import {
   FlameIcon,
   NotebookIcon,
@@ -184,6 +184,42 @@ export function HomeView() {
             <p className="truncate text-xs text-muted-recall">
               {stats?.cardCount ?? 0} cards · {stats?.deckCount ?? 0} decks
             </p>
+          </div>
+        </button>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('recall-ocr'))}
+          className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card-surface p-4 text-left card-lift press"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-warm/10 text-accent-warm transition-smooth group-hover:scale-110">
+            <ImageIcon size={20} aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Scan image</p>
+            <p className="truncate text-xs text-muted-recall">OCR → note</p>
+          </div>
+        </button>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('recall-concept-map'))}
+          className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card-surface p-4 text-left card-lift press"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-warm/10 text-accent-warm transition-smooth group-hover:scale-110">
+            <Network size={20} aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Concept map</p>
+            <p className="truncate text-xs text-muted-recall">AI visual map</p>
+          </div>
+        </button>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('recall-adaptive-difficulty'))}
+          className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card-surface p-4 text-left card-lift press"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-warm/10 text-accent-warm transition-smooth group-hover:scale-110">
+            <Brain size={20} aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Difficulty</p>
+            <p className="truncate text-xs text-muted-recall">AI insights</p>
           </div>
         </button>
       </div>

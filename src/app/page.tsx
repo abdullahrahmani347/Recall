@@ -28,12 +28,18 @@ import { ArticleReader } from '@/components/app/article-reader'
 import { useKeyboardShortcuts, ShortcutsHelpModal } from '@/hooks/use-keyboard-shortcuts'
 import { TemplatePicker } from '@/components/app/template-picker'
 import { CustomStudyPicker } from '@/components/app/custom-study-picker'
+import { OcrNoteCreator } from '@/components/app/ocr-note-creator'
+import { ConceptMap } from '@/components/app/concept-map'
+import { AdaptiveDifficulty } from '@/components/app/adaptive-difficulty'
 import { Loader2 } from 'lucide-react'
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [showCustomStudy, setShowCustomStudy] = useState(false)
+  const [showOcr, setShowOcr] = useState(false)
+  const [showConceptMap, setShowConceptMap] = useState(false)
+  const [showAdaptiveDifficulty, setShowAdaptiveDifficulty] = useState(false)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -55,6 +61,24 @@ export default function Home() {
     const onCustomStudy = () => setShowCustomStudy(true)
     window.addEventListener('recall-custom-study', onCustomStudy)
     return () => window.removeEventListener('recall-custom-study', onCustomStudy)
+  }, [])
+
+  useEffect(() => {
+    const onOcr = () => setShowOcr(true)
+    window.addEventListener('recall-ocr', onOcr)
+    return () => window.removeEventListener('recall-ocr', onOcr)
+  }, [])
+
+  useEffect(() => {
+    const onConceptMap = () => setShowConceptMap(true)
+    window.addEventListener('recall-concept-map', onConceptMap)
+    return () => window.removeEventListener('recall-concept-map', onConceptMap)
+  }, [])
+
+  useEffect(() => {
+    const onAdaptiveDifficulty = () => setShowAdaptiveDifficulty(true)
+    window.addEventListener('recall-adaptive-difficulty', onAdaptiveDifficulty)
+    return () => window.removeEventListener('recall-adaptive-difficulty', onAdaptiveDifficulty)
   }, [])
 
   const { data: onboardingData, isLoading: onboardingLoading } = useQuery({
@@ -147,6 +171,9 @@ export default function Home() {
           onClose={() => setShowCustomStudy(false)}
         />
       )}
+      {showOcr && <OcrNoteCreator onClose={() => setShowOcr(false)} />}
+      {showConceptMap && <ConceptMap onClose={() => setShowConceptMap(false)} />}
+      {showAdaptiveDifficulty && <AdaptiveDifficulty onClose={() => setShowAdaptiveDifficulty(false)} />}
     </div>
   )
 }
