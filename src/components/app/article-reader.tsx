@@ -6,7 +6,7 @@ import { api } from '@/lib/api-client'
 import { useAppStore } from '@/stores/app-store'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { ArrowLeft, Check, Highlighter, Trash2, ChevronRight, ChevronLeft, FileText } from 'lucide-react'
+import { ArrowLeft, Check, Highlighter, Trash2, ChevronRight, ChevronLeft, FileText, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ArticleSection {
@@ -53,6 +53,26 @@ export function ArticleReader({ articleId }: { articleId: string }) {
         body: JSON.stringify({ isRead: true }),
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['article', articleId] }),
+  })
+
+  // Feature 6: Schedule section for spaced repetition (incremental reading)
+  const scheduleSectionMutation = useMutation({
+    mutationFn: (body: { sectionId: string; grade: 'again' | 'hard' | 'good' | 'easy' }) =>
+      api(`/api/sections/${body.sectionId}/review`, {
+        method: 'POST',
+        body: JSON.stringify({ grade: body.grade }),
+      }),
+    onSuccess: () => {
+      toast.success('Section scheduled for review')
+      qc.invalidateQueries({ queryKey: ['article', articleId] })
+      qc.invalidateQueries({ queryKey: ['sections-queue'] })
+      if (!isLastSection) {
+        setCurrentIdx(currentIdx + 1)
+        setSelectedText('')
+        contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to schedule section'),
   })
 
   const highlightMutation = useMutation({
@@ -268,26 +288,52 @@ export function ArticleReader({ articleId }: { articleId: string }) {
 
       {/* Navigation */}
       <footer className="sticky bottom-0 border-t border-hairline bg-canvas/95 backdrop-blur" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
-          <Button
-            variant="ghost"
-            onClick={prev}
-            disabled={currentIdx === 0}
-            className="border border-hairline"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Prev
-          </Button>
-          <span className="text-xs text-muted-recall">
-            {currentIdx + 1} / {sections.length}
-          </span>
-          <Button
-            onClick={next}
-            className="bg-accent-brand text-void hover:bg-accent-brand/90"
-          >
-            {isLastSection ? 'Finish' : 'Next'}
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        <div className="mx-auto max-w-2xl px-4 py-3">
+          {/* Feature 6: Schedule section for spaced repetition */}
+          {section && (
+            <div className="mb-3 flex items-center justify-center gap-2">
+              <span className="flex items-center gap-1 text-xs text-muted-recall">
+                <Clock size={12} />
+                Schedule review:
+              </span>
+              {(['again', 'hard', 'good', 'easy'] as const).map((g) => (
+                <button
+                  key={g}
+                  onClick={() => scheduleSectionMutation.mutate({ sectionId: section.id, grade: g })}
+                  disabled={scheduleSectionMutation.isPending}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition press ${
+                    g === 'again' ? 'bg-grade-again/20 text-grade-again hover:bg-grade-again/30' :
+                    g === 'hard' ? 'bg-grade-hard/20 text-grade-hard hover:bg-grade-hard/30' :
+                    g === 'good' ? 'bg-grade-good/20 text-grade-good hover:bg-grade-good/30' :
+                    'bg-grade-easy/20 text-grade-easy hover:bg-grade-easy/30'
+                  }`}
+                >
+                  {g === 'again' ? 'Read again soon' : g === 'hard' ? 'Hard' : g === 'good' ? 'Good' : 'Easy'}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              onClick={prev}
+              disabled={currentIdx === 0}
+              className="border border-hairline"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Prev
+            </Button>
+            <span className="text-xs text-muted-recall">
+              {currentIdx + 1} / {sections.length}
+            </span>
+            <Button
+              onClick={next}
+              className="bg-accent-brand text-void hover:bg-accent-brand/90"
+            >
+              {isLastSection ? 'Finish' : 'Next'}
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </footer>
     </div>

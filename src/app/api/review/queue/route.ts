@@ -28,6 +28,8 @@ export async function GET(req: NextRequest) {
     where: {
       ...(deckId ? { deckId } : { deck: { userId: user!.id } }),
       deck: { userId: user!.id },
+      isSuspended: false, // never show suspended cards
+      isBuried: false,    // buried cards hidden until tomorrow (reset via cron or on new day)
     },
     include: {
       schedulingState: true,
