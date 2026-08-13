@@ -5,13 +5,14 @@ import ZAI from 'z-ai-web-dev-sdk'
 import { z } from 'zod'
 
 const schema = z.object({
-  image: z.string().min(1), // base64-encoded image
+  image: z.string().min(1), // base64-encoded image (no data URL prefix)
+  mimeType: z.string().optional(), // e.g. 'image/png', 'image/jpeg'
   title: z.string().optional(),
 })
 
 /**
  * POST /api/ai/ocr
- * Body: { image: base64-encoded-image, title?: string }
+ * Body: { image: base64-encoded-image, mimeType?: string, title?: string }
  *
  * Uses the z-ai-web-dev-sdk's VLM (Vision Language Model) capability
  * to extract text from a photo of a textbook page, whiteboard, or
@@ -35,6 +36,18 @@ export async function POST(req: NextRequest) {
 
   try {
     const zai = await ZAI.create()
+
+    // Detect image type from base64 header or use provided mimeType
+    let mimeType = parsed.data.mimeType || 'image/jpeg'
+    // Try to detect from the first bytes of the base64 data
+    const header = parsed.data.image.slice(0, 4)
+    if (header === '/9j/') mimeType = 'image/jpeg'
+    else if (header === 'iVBOR') mimeType = 'image/png'
+    else if (header === 'R0lG') mimeType = 'image/gif'
+    else if (header === 'UklG') mimeType = 'image/webp'
+
+    const dataUrl = `data:${mimeType};base64,${parsed.data.image}`
+
     const result = await zai.chat.completions.createVision({
       model: 'glm-4v',
       messages: [
@@ -46,13 +59,17 @@ export async function POST(req: NextRequest) {
           role: 'user',
           content: [
             { type: 'text', text: 'Extract all text from this image as markdown.' },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${parsed.data.image}` } },
+            { type: 'image_url', image_url: { url: dataUrl } },
           ],
         },
       ],
     })
 
-    const extractedText = (result as any)?.choices?.[0]?.message?.content || (result as any)?.content || ''
+    const extractedText =
+      (result as any)?.choices?.[0]?.message?.content ||
+      (result as any)?.content ||
+      (result as any)?.data?.content ||
+      ''
 
     if (!extractedText || extractedText.trim().length < 5) {
       return NextResponse.json({ error: 'No text could be extracted from the image' }, { status: 422 })
@@ -80,9 +97,21 @@ export async function POST(req: NextRequest) {
       },
     }, { status: 201 })
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'OCR failed' },
-      { status: 502 }
-    )
+    console.error('OCR error:', err)
+    const message = err instanceof Error ? err.message : 'OCR failed'
+    // Return more helpful error message
+    if (message.includes('413') || message.includes('too large')) {
+      return NextResponse.json(
+        { error: 'Image too large. Please use a smaller image (max 5MB).' },
+        { status: 413 }
+      )
+    }
+    if (message.includes('400') || message.includes('invalid')) {
+      return NextResponse.json(
+        { error: 'Invalid image format. Please try a different image (PNG or JPG).' },
+        { status: 400 }
+      )
+    }
+    return NextResponse.json({ error: message }, { status: 502 })
   }
 }

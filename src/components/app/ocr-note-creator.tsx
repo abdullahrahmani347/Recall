@@ -55,15 +55,40 @@ export function OcrNoteCreator({ onClose }: { onClose: () => void }) {
       toast.error('Image too large (max 10MB)')
       return
     }
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      setImagePreview(result)
-      // Extract base64 without the data URL prefix
-      const base64 = result.split(',')[1]
+
+    // Resize/compress the image before sending to avoid API size limits.
+    // The VLM API works best with images under ~2MB.
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      // Max dimension 1600px (good balance of quality vs size)
+      const maxDim = 1600
+      let { width, height } = img
+      if (width > maxDim || height > maxDim) {
+        const scale = maxDim / Math.max(width, height)
+        width = Math.round(width * scale)
+        height = Math.round(height * scale)
+      }
+
+      canvas.width = width
+      canvas.height = height
+      ctx.drawImage(img, 0, 0, width, height)
+
+      // Convert to JPEG at 85% quality (smaller than PNG)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+      setImagePreview(dataUrl)
+      const base64 = dataUrl.split(',')[1]
       setImageBase64(base64)
     }
-    reader.readAsDataURL(file)
+    img.onerror = () => {
+      toast.error('Failed to load image')
+    }
+    img.src = url
   }
 
   const handlePaste = (e: React.ClipboardEvent) => {
