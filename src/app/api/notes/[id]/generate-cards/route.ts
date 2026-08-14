@@ -73,27 +73,29 @@ export async function POST(req: NextRequest, { params }: Params) {
   const summary = note.summaries[0]?.summaryText ?? ''
   const sourceContent = note.contentMarkdown.slice(0, 8000) // cap context
 
-  const prompt = `You are a flashcard generator. Given the following study note${summary ? ' and its summary' : ''}, generate exactly ${count} high-quality flashcards.
-
-Rules:
-- Each card has a concise "front" (question or prompt) and a clear "back" (answer).
-- Fronts should be self-contained — no "according to the note…" phrasing.
-- Backs should be 1–3 sentences, factual, and derivable directly from the note.
-- Prefer cloze-style "What is X?" or "Define X" fronts for definitions.
-- For lists, ask for the items explicitly rather than "list everything".
-- Avoid trivial cards (e.g. "What is the title of the note?").
-- Vary the question structure across cards.
-
-Return ONLY a JSON array of { "front": string, "back": string } objects. No markdown fences, no commentary.
-
-Note title: ${note.title || 'Untitled'}
-
-${summary ? `Summary:\\n${summary}\\n\\n` : ''}Note content:\\n${sourceContent}`
+  const prompt = [
+    `You are a flashcard generator. Given the following study note${summary ? ' and its summary' : ''}, generate exactly ${count} high-quality flashcards.`,
+    '',
+    'Rules:',
+    '- Each card has a concise "front" (question or prompt) and a clear "back" (answer).',
+    '- Fronts should be self-contained — no "according to the note…" phrasing.',
+    '- Backs should be 1–3 sentences, factual, and derivable directly from the note.',
+    '- Prefer cloze-style "What is X?" or "Define X" fronts for definitions.',
+    '- For lists, ask for the items explicitly rather than "list everything".',
+    '- Avoid trivial cards (e.g. "What is the title of the note?").',
+    '- Vary the question structure across cards.',
+    '',
+    'Return ONLY a JSON array of { "front": string, "back": string } objects. No markdown fences, no commentary.',
+    '',
+    `Note title: ${note.title || 'Untitled'}`,
+    '',
+    summary ? `Summary:\n${summary}\n\n` : '',
+    `Note content:\n${sourceContent}`,
+  ].join('\n')
 
   try {
     const zai = await ZAI.create()
     const completion = (await zai.chat.completions.create({
-      model: 'glm-4-flash',
       messages: [
         {
           role: 'system',
@@ -125,7 +127,7 @@ ${summary ? `Summary:\\n${summary}\\n\\n` : ''}Note content:\\n${sourceContent}`
 /**
  * Parse the LLM's response into a clean SuggestedCard[].
  * Handles common failure modes: markdown fences, trailing commas, prose
- * before/after the JSON.
+ * before/after the JSON, and objects wrapping the array.
  */
 function parseSuggestions(raw: string): SuggestedCard[] {
   let text = raw.trim()
@@ -133,6 +135,18 @@ function parseSuggestions(raw: string): SuggestedCard[] {
   // Strip markdown code fences if present
   const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (fenceMatch) text = fenceMatch[1].trim()
+
+  // Try parsing as-is first (in case the model returned clean JSON)
+  try {
+    const direct = JSON.parse(text)
+    const arr = Array.isArray(direct) ? direct : direct.cards || direct.suggestions || direct.flashcards
+    if (Array.isArray(arr)) {
+      const result = extractCards(arr)
+      if (result.length > 0) return result
+    }
+  } catch {
+    // Not clean JSON — continue to fallback extraction
+  }
 
   // Find the first '[' and last ']' to extract the JSON array
   const start = text.indexOf('[')
@@ -144,21 +158,33 @@ function parseSuggestions(raw: string): SuggestedCard[] {
   try {
     const parsed = JSON.parse(jsonStr)
     if (!Array.isArray(parsed)) return []
-    return parsed
-      .filter(
-        (item): item is SuggestedCard =>
-          typeof item === 'object' &&
-          item !== null &&
-          typeof item.front === 'string' &&
-          typeof item.back === 'string' &&
-          item.front.trim().length > 0 &&
-          item.back.trim().length > 0
-      )
-      .map((item) => ({
-        front: item.front.trim().slice(0, 5000),
-        back: item.back.trim().slice(0, 5000),
-      }))
+    return extractCards(parsed)
   } catch {
-    return []
+    // Try fixing common JSON errors (trailing commas)
+    try {
+      const fixed = jsonStr.replace(/,\s*]/g, ']').replace(/,\s*}/g, '}')
+      const parsed = JSON.parse(fixed)
+      if (!Array.isArray(parsed)) return []
+      return extractCards(parsed)
+    } catch {
+      return []
+    }
   }
+}
+
+function extractCards(arr: any[]): SuggestedCard[] {
+  return arr
+    .filter(
+      (item): item is SuggestedCard =>
+        typeof item === 'object' &&
+        item !== null &&
+        typeof item.front === 'string' &&
+        typeof item.back === 'string' &&
+        item.front.trim().length > 0 &&
+        item.back.trim().length > 0
+    )
+    .map((item) => ({
+      front: item.front.trim().slice(0, 5000),
+      back: item.back.trim().slice(0, 5000),
+    }))
 }
