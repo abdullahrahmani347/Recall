@@ -533,3 +533,36 @@
     animation: none !important;
   }
 }
+
+/* Screen-reader-only utility — visually hidden but accessible to AT */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Ensure minimum touch target size (WCAG 2.5.5 — 44x44px) */
+button, a, [role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+/* Exception for small toolbar buttons that have adequate spacing */
+.toolbar-btn-sm {
+  min-height: 32px;
+  min-width: 32px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-hairline: #FFFFFF;
+    --text-muted: #CCCCCC;
+    --text-secondary: #EEEEEE;
+  }
+}

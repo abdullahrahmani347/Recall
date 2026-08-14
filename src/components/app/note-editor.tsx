@@ -250,6 +250,16 @@ export function NoteEditor() {
         setSavedAt(new Date())
         qc.invalidateQueries({ queryKey: ['notes'] })
         qc.invalidateQueries({ queryKey: ['stats'] })
+
+        // AI: Auto-summarize new notes that have enough content (200+ chars)
+        if (body.length > 200) {
+          // Fire and forget — don't block the save
+          api(`/api/notes/${res.note.id}/summarize`, { method: 'POST' })
+            .then(() => {
+              qc.invalidateQueries({ queryKey: ['note', res.note.id] })
+            })
+            .catch(() => { /* silent fail — auto-summarize is best-effort */ })
+        }
       } else {
         await updateNoteMutation.mutateAsync({
           title: title || 'Untitled',
@@ -261,6 +271,15 @@ export function NoteEditor() {
         qc.invalidateQueries({ queryKey: ['notes'] })
         // Phase 3: broadcast the edit to other viewers
         broadcastNoteUpdateRef.current()
+
+        // AI: Auto-summarize on significant content changes (every ~500 chars changed)
+        if (body.length > 200 && !existingSummaryText) {
+          api(`/api/notes/${currentNoteId}/summarize`, { method: 'POST' })
+            .then(() => {
+              qc.invalidateQueries({ queryKey: ['note', currentNoteId] })
+            })
+            .catch(() => { /* silent fail */ })
+        }
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Save failed')

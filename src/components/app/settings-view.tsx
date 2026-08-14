@@ -22,6 +22,7 @@ import {
   Loader2,
   Bell,
   Package,
+  Shield,
 } from 'lucide-react'
 import type { ApiSettings } from '@/lib/types'
 import { useTheme } from 'next-themes'
@@ -465,6 +466,15 @@ export function SettingsView() {
           >
             <RotateCw className="mr-1 h-3.5 w-3.5" />
             Retake onboarding
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => window.dispatchEvent(new CustomEvent('recall-privacy'))}
+            className="border border-hairline bg-void text-secondary-recall hover:text-primary-recall"
+            size="sm"
+          >
+            <Shield className="mr-1 h-3.5 w-3.5" />
+            Your Data
           </Button>
           <Button
             variant="ghost"

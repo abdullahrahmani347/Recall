@@ -42,8 +42,9 @@ export function BottomNav() {
                 onClick={() => setView(item.view)}
                 aria-current={active ? 'page' : undefined}
                 aria-label={item.label}
+                aria-keyshortcuts={item.view === 'home' ? 'g h' : item.view === 'notes' ? 'g n' : item.view === 'search' ? 'g s' : undefined}
                 className={cn(
-                  'relative flex w-full flex-col items-center gap-0.5 px-1 py-2.5 text-[10px] font-medium transition-smooth sm:gap-1 sm:px-2 sm:py-3 sm:text-[11px]',
+                  'relative flex w-full flex-col items-center gap-0.5 px-1 py-2.5 text-[10px] font-medium transition-smooth focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brand sm:gap-1 sm:px-2 sm:py-3 sm:text-[11px]',
                   active
                     ? 'text-accent-brand'
                     : 'text-muted-recall hover:text-primary-recall'

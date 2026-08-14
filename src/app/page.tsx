@@ -32,6 +32,8 @@ import { OcrNoteCreator } from '@/components/app/ocr-note-creator'
 import { ConceptMap } from '@/components/app/concept-map'
 import { AdaptiveDifficulty } from '@/components/app/adaptive-difficulty'
 import { ErrorBoundary } from '@/components/providers/error-boundary'
+import { PwaInstallPrompt } from '@/components/app/pwa-install-prompt'
+import { PrivacyDashboard } from '@/components/app/privacy-dashboard'
 import { Loader2 } from 'lucide-react'
 
 export default function Home() {
@@ -41,6 +43,7 @@ export default function Home() {
   const [showOcr, setShowOcr] = useState(false)
   const [showConceptMap, setShowConceptMap] = useState(false)
   const [showAdaptiveDifficulty, setShowAdaptiveDifficulty] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -80,6 +83,12 @@ export default function Home() {
     const onAdaptiveDifficulty = () => setShowAdaptiveDifficulty(true)
     window.addEventListener('recall-adaptive-difficulty', onAdaptiveDifficulty)
     return () => window.removeEventListener('recall-adaptive-difficulty', onAdaptiveDifficulty)
+  }, [])
+
+  useEffect(() => {
+    const onPrivacy = () => setShowPrivacy(true)
+    window.addEventListener('recall-privacy', onPrivacy)
+    return () => window.removeEventListener('recall-privacy', onPrivacy)
   }, [])
 
   const { data: onboardingData, isLoading: onboardingLoading } = useQuery({
@@ -177,6 +186,8 @@ export default function Home() {
       {showOcr && <OcrNoteCreator onClose={() => setShowOcr(false)} />}
       {showConceptMap && <ConceptMap onClose={() => setShowConceptMap(false)} />}
       {showAdaptiveDifficulty && <AdaptiveDifficulty onClose={() => setShowAdaptiveDifficulty(false)} />}
+      {showPrivacy && <PrivacyDashboard onClose={() => setShowPrivacy(false)} />}
+      <PwaInstallPrompt />
     </div>
   )
 }
