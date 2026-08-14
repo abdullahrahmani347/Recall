@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { SyncProvider } from "@/components/providers/sync-provider";
 import { ServiceWorkerRegister } from "@/components/providers/service-worker-register";
 
 const inter = Inter({
@@ -71,13 +72,15 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <QueryProvider>
-            <a href="#main" className="skip-link">
-              Skip to content
-            </a>
-            {children}
-            <Toaster />
-            <SonnerToaster position="top-center" richColors />
-            <ServiceWorkerRegister />
+            <SyncProvider>
+              <a href="#main" className="skip-link">
+                Skip to content
+              </a>
+              {children}
+              <Toaster />
+              <SonnerToaster position="top-center" richColors />
+              <ServiceWorkerRegister />
+            </SyncProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>

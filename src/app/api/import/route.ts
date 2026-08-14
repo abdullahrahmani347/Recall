@@ -95,6 +95,104 @@ export async function POST(req: NextRequest) {
       },
     })
     notesCreated = 1
+  } else if (format === 'csv') {
+    // CSV import — flashcards from comma-separated values.
+    // Expected format: Front,Back,Deck,Tags,CardType (same as CSV export)
+    // or simple: Front,Back
+    const lines = text.split('\n').filter((l) => l.trim().length > 0)
+    if (lines.length === 0) {
+      return NextResponse.json({ error: 'CSV file is empty' }, { status: 400 })
+    }
+
+    // Skip header if it looks like one
+    const firstLine = lines[0].toLowerCase()
+    const hasHeader = firstLine.includes('front') && firstLine.includes('back')
+    const dataLines = hasHeader ? lines.slice(1) : lines
+
+    // Find or create an "Imported" deck
+    let deck = await db.deck.findFirst({ where: { userId: user!.id, name: 'Imported' } })
+    if (!deck) {
+      deck = await db.deck.create({
+        data: { userId: user!.id, name: 'Imported', description: 'Cards imported from CSV', color: '#FFB454' },
+      })
+    }
+
+    let cardsCreated = 0
+    for (const line of dataLines) {
+      // Simple CSV parser — handles quoted fields with commas
+      const fields: string[] = []
+      let current = ''
+      let inQuotes = false
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i]
+        if (ch === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"'
+            i++
+          } else {
+            inQuotes = !inQuotes
+          }
+        } else if (ch === ',' && !inQuotes) {
+          fields.push(current)
+          current = ''
+        } else {
+          current += ch
+        }
+      }
+      fields.push(current)
+
+      const front = fields[0]?.trim()
+      const back = fields[1]?.trim()
+      if (!front || !back) continue
+
+      const card = await db.flashcard.create({
+        data: {
+          deckId: deck.id,
+          cardType: fields[4]?.trim() || 'basic',
+          front,
+          back,
+        },
+      })
+      await db.schedulingState.create({ data: { cardId: card.id } })
+      cardsCreated++
+    }
+
+    return NextResponse.json({ cardsCreated, deckName: deck.name })
+  } else if (format === 'anki') {
+    // Anki .apkg import — parse the SQLite database inside the ZIP.
+    // For MVP, we extract text from .txt files or simple CSV inside the apkg.
+    // Full .apkg SQLite parsing requires sql.js which is heavy; for now
+    // we accept .txt exports from Anki (one card per line, front<TAB>back).
+    const lines = text.split('\n').filter((l) => l.trim().length > 0)
+
+    let deck = await db.deck.findFirst({ where: { userId: user!.id, name: 'Anki Import' } })
+    if (!deck) {
+      deck = await db.deck.create({
+        data: { userId: user!.id, name: 'Anki Import', description: 'Cards imported from Anki', color: '#4C8CFF' },
+      })
+    }
+
+    let cardsCreated = 0
+    for (const line of lines) {
+      // Anki .txt export uses tab separator
+      const parts = line.split('\t')
+      const front = parts[0]?.trim()
+      const back = parts.slice(1).join('\n').trim()
+      if (!front || !back) continue
+
+      const card = await db.flashcard.create({
+        data: {
+          deckId: deck.id,
+          cardType: 'basic',
+          front,
+          back,
+        },
+      })
+      await db.schedulingState.create({ data: { cardId: card.id } })
+      cardsCreated++
+    }
+
+    return NextResponse.json({ cardsCreated, deckName: deck.name })
   } else {
     return NextResponse.json({ error: 'Unsupported format' }, { status: 400 })
   }

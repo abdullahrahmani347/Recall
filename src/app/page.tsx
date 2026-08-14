@@ -31,6 +31,7 @@ import { CustomStudyPicker } from '@/components/app/custom-study-picker'
 import { OcrNoteCreator } from '@/components/app/ocr-note-creator'
 import { ConceptMap } from '@/components/app/concept-map'
 import { AdaptiveDifficulty } from '@/components/app/adaptive-difficulty'
+import { ErrorBoundary } from '@/components/providers/error-boundary'
 import { Loader2 } from 'lucide-react'
 
 export default function Home() {
@@ -130,14 +131,15 @@ export default function Home() {
     return <OnboardingFlow />
   }
 
-  if (view === 'note-editor') return <NoteEditor />
-  if (view === 'review') return <ReviewSession />
-  if (view === 'article-reader') return <ArticleReader articleId={sessionStorage.getItem('recall-article-id') || ''} />
+  if (view === 'note-editor') return <ErrorBoundary><NoteEditor /></ErrorBoundary>
+  if (view === 'review') return <ErrorBoundary><ReviewSession /></ErrorBoundary>
+  if (view === 'article-reader') return <ErrorBoundary><ArticleReader articleId={sessionStorage.getItem('recall-article-id') || ''} /></ErrorBoundary>
 
   return (
     <div className="flex min-h-screen flex-col bg-canvas">
       <ReminderBanner />
       <main id="main" className="flex-1">
+        <ErrorBoundary>
         <ViewTransition key={view}>
           {view === 'home' && <HomeView />}
           {view === 'notes' && <NotesView />}
@@ -149,6 +151,7 @@ export default function Home() {
           {view === 'analytics' && <AnalyticsView />}
           {view === 'settings' && <SettingsView />}
         </ViewTransition>
+        </ErrorBoundary>
       </main>
       <BottomNav />
       <CommandPalette />

@@ -30,7 +30,10 @@ export async function GET(req: NextRequest) {
     db.deck.findMany({ where: { userId: user!.id } }),
     db.flashcard.findMany({
       where: { deck: { userId: user!.id } },
-      include: { deck: { select: { name: true } } },
+      include: {
+        deck: { select: { name: true } },
+        sourceNote: { select: { tags: { include: { tag: { select: { name: true } } } } } },
+      },
     }),
   ])
 
@@ -48,6 +51,38 @@ export async function GET(req: NextRequest) {
       headers: {
         'Content-Type': 'text/markdown; charset=utf-8',
         'Content-Disposition': 'attachment; filename="recall-export.md"',
+      },
+    })
+  }
+
+  if (format === 'csv') {
+    // CSV export — flashcards as comma-separated values (Anki-compatible format).
+    // Columns: front, back, deck, tags, cardType
+    const escapeCsv = (val: string) => {
+      if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+        return `"${val.replace(/"/g, '""')}"`
+      }
+      return val
+    }
+
+    const header = 'Front,Back,Deck,Tags,CardType\n'
+    const rows = cards.map((c) => {
+      const deck = decks.find((d) => d.id === c.deckId)
+      const tags = c.sourceNote?.tags?.map((t: any) => t.tag.name).join(';') || ''
+      return [
+        escapeCsv(c.front),
+        escapeCsv(c.back),
+        escapeCsv(deck?.name || ''),
+        escapeCsv(tags),
+        escapeCsv(c.cardType),
+      ].join(',')
+    })
+    const csv = header + rows.join('\n')
+
+    return new NextResponse(csv, {
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="recall-cards.csv"',
       },
     })
   }
