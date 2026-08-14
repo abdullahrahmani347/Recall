@@ -45,37 +45,59 @@ export async function POST(req: NextRequest) {
   const parsed = onboardingSchema.safeParse(body)
   if (!parsed.success) return badRequest(parsed.error.issues[0]?.message ?? 'Invalid input')
 
-  const data = {
-    ...parsed.data,
-    interests: parsed.data.interests
-      ? JSON.stringify(parsed.data.interests)
-      : undefined,
-  }
+  try {
+    // Build update data — only include fields that were provided
+    const updateData: any = {}
+    if (parsed.data.completed !== undefined) updateData.completed = parsed.data.completed
+    if (parsed.data.studyGoal !== undefined) updateData.studyGoal = parsed.data.studyGoal
+    if (parsed.data.experienceLevel !== undefined) updateData.experienceLevel = parsed.data.experienceLevel
+    if (parsed.data.interests !== undefined) updateData.interests = JSON.stringify(parsed.data.interests)
+    if (parsed.data.dailyGoalMinutes !== undefined) updateData.dailyGoalMinutes = parsed.data.dailyGoalMinutes
 
-  const onboarding = await db.onboarding.upsert({
-    where: { userId: user!.id },
-    update: data,
-    create: { userId: user!.id, ...data },
-  })
+    // Build create data — use defaults for missing fields
+    const createData = {
+      userId: user!.id,
+      completed: parsed.data.completed ?? false,
+      studyGoal: parsed.data.studyGoal ?? null,
+      experienceLevel: parsed.data.experienceLevel ?? null,
+      interests: parsed.data.interests ? JSON.stringify(parsed.data.interests) : '[]',
+      dailyGoalMinutes: parsed.data.dailyGoalMinutes ?? 15,
+    }
 
-  // If the user set a daily goal, sync it to their settings' dailyReviewLimit
-  // (roughly: 1 card ≈ 30 seconds, so dailyGoalMinutes * 2 = daily review limit)
-  if (parsed.data.dailyGoalMinutes !== undefined) {
-    const computedLimit = Math.min(500, Math.max(10, parsed.data.dailyGoalMinutes * 2))
+    const onboarding = await db.onboarding.upsert({
+      where: { userId: user!.id },
+      update: updateData,
+      create: createData,
+    })
+
+    // Ensure settings row exists, then update dailyReviewLimit if needed
+    const settingsUpdate = parsed.data.dailyGoalMinutes !== undefined
+      ? { dailyReviewLimit: Math.min(500, Math.max(10, parsed.data.dailyGoalMinutes * 2)) }
+      : {}
+
     await db.settings.upsert({
       where: { userId: user!.id },
-      update: { dailyReviewLimit: computedLimit },
-      create: { userId: user!.id, dailyReviewLimit: computedLimit },
+      update: settingsUpdate,
+      create: {
+        userId: user!.id,
+        ...settingsUpdate,
+      },
     })
-  }
 
-  return NextResponse.json({
-    onboarding: {
-      completed: onboarding.completed,
-      studyGoal: onboarding.studyGoal,
-      experienceLevel: onboarding.experienceLevel,
-      interests: JSON.parse(onboarding.interests),
-      dailyGoalMinutes: onboarding.dailyGoalMinutes,
-    },
-  })
+    return NextResponse.json({
+      onboarding: {
+        completed: onboarding.completed,
+        studyGoal: onboarding.studyGoal,
+        experienceLevel: onboarding.experienceLevel,
+        interests: JSON.parse(onboarding.interests),
+        dailyGoalMinutes: onboarding.dailyGoalMinutes,
+      },
+    })
+  } catch (err) {
+    console.error('Onboarding POST error:', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Failed to save onboarding' },
+      { status: 500 }
+    )
+  }
 }

@@ -162,9 +162,7 @@ export function OnboardingFlow() {
       {/* Top bar with skip */}
       <header className="mx-auto flex w-full max-w-2xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-brand text-void">
-            <Brain className="h-4 w-4" aria-hidden="true" />
-          </div>
+          <img src="/logo.svg" alt="Recall" className="h-8 w-8" />
           <span className="font-display text-lg font-semibold tracking-tight">Recall</span>
         </div>
         <button
