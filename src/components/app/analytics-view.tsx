@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
 import { ReviewHeatmap } from '@/components/app/review-heatmap'
+import { Achievements } from '@/components/app/achievements'
 import { useAppStore } from '@/stores/app-store'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,7 +23,7 @@ import {
   CartesianGrid,
 } from 'recharts'
 import type { Analytics as AnalyticsT } from '@/lib/types'
-import { Flame, Clock, Target, TrendingUp, Layers } from 'lucide-react'
+import { Flame, Clock, Target, TrendingUp, Layers, Trophy } from 'lucide-react'
 
 const GRADE_COLORS = {
   again: '#F0554B',
@@ -134,6 +135,17 @@ export function AnalyticsView() {
       {/* REVIEW HEATMAP — GitHub-style contribution grid */}
       <Card className="mb-6 border-hairline bg-card-surface p-5 animate-fade-in-up stagger-2">
         <ReviewHeatmap days={365} />
+      </Card>
+
+      {/* ACHIEVEMENTS & GAMIFICATION */}
+      <Card className="mb-6 border-hairline bg-card-surface p-5 animate-fade-in-up stagger-3">
+        <div className="mb-4 flex items-center gap-2">
+          <Trophy className="h-4 w-4 text-accent-warm" aria-hidden="true" />
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-recall">
+            Achievements
+          </h2>
+        </div>
+        <Achievements />
       </Card>
 
       {/* FORECAST — upcoming review load + completion estimates */}

@@ -110,6 +110,140 @@ export async function GET(req: NextRequest) {
     })
   }
 
+  if (format === 'gdpr') {
+    // GDPR-ready data download — includes ALL user data with full metadata.
+    // This is the "data portability" right under GDPR Article 20.
+    const [reviewLogs, articles, highlights, comments, summaries, attachments, onboarding, settings] = await Promise.all([
+      db.reviewLog.findMany({
+        where: { userId: user!.id },
+        select: { reviewedAt: true, grade: true, responseTimeMs: true, previousInterval: true, newInterval: true },
+      }),
+      db.article.findMany({
+        where: { userId: user!.id },
+        select: { title: true, sourceUrl: true, rawContent: true, createdAt: true, updatedAt: true },
+      }),
+      db.highlight.findMany({
+        where: { userId: user!.id },
+        select: { text: true, note: true, cardType: true, createdAt: true },
+      }),
+      db.comment.findMany({
+        where: { userId: user!.id },
+        select: { body: true, anchorText: true, resolved: true, createdAt: true, updatedAt: true },
+      }),
+      db.summary.findMany({
+        where: { note: { userId: user!.id } },
+        select: { summaryText: true, modelUsed: true, status: true, createdAt: true, updatedAt: true },
+      }),
+      db.attachment.findMany({
+        where: { note: { userId: user!.id } },
+        select: { fileUrl: true, fileType: true, sizeBytes: true, createdAt: true },
+      }),
+      db.onboarding.findUnique({
+        where: { userId: user!.id },
+        select: { completed: true, studyGoal: true, experienceLevel: true, interests: true, dailyGoalMinutes: true },
+      }),
+      db.settings.findUnique({
+        where: { userId: user!.id },
+        select: { theme: true, dailyNewCardLimit: true, dailyReviewLimit: true, timezone: true, aiProcessingOptOut: true },
+      }),
+    ])
+
+    // Get full user record for GDPR export
+    const fullUser = await db.user.findUnique({
+      where: { id: user!.id },
+      select: { email: true, name: true, authProvider: true, createdAt: true },
+    })
+
+    const gdprPayload = {
+      exportedAt: new Date().toISOString(),
+      format: 'GDPR Article 20 — Data Portability',
+      version: 2,
+      user: {
+        email: fullUser?.email,
+        name: fullUser?.name,
+        authProvider: fullUser?.authProvider,
+        accountCreated: fullUser?.createdAt,
+      },
+      data: {
+        notes: notes.map(n => ({
+          id: n.id,
+          title: n.title,
+          contentMarkdown: n.contentMarkdown,
+          notebook: n.notebook?.name ?? null,
+          tags: n.tags.map(t => t.tag.name),
+          isArchived: n.isArchived,
+          isPinned: n.isPinned,
+          createdAt: n.createdAt,
+          updatedAt: n.updatedAt,
+        })),
+        tags: tags.map(t => ({ name: t.name, color: t.color, createdAt: t.createdAt })),
+        notebooks: notebooks.map(nb => ({ name: nb.name, color: nb.color, createdAt: nb.createdAt })),
+        decks: decks.map(d => ({
+          name: d.name,
+          description: d.description,
+          color: d.color,
+          createdAt: d.createdAt,
+        })),
+        flashcards: cards.map(c => ({
+          cardType: c.cardType,
+          front: c.front,
+          back: c.back,
+          deckName: c.deck.name,
+          imageUrl: c.imageUrl,
+          createdAt: c.createdAt,
+        })),
+        reviewLogs: reviewLogs.map(r => ({
+          reviewedAt: r.reviewedAt,
+          grade: r.grade,
+          responseTimeMs: r.responseTimeMs,
+          previousInterval: r.previousInterval,
+          newInterval: r.newInterval,
+        })),
+        articles: articles.map(a => ({
+          title: a.title,
+          sourceUrl: a.sourceUrl,
+          rawContent: a.rawContent,
+          createdAt: a.createdAt,
+        })),
+        highlights: highlights.map(h => ({
+          text: h.text,
+          note: h.note,
+          cardType: h.cardType,
+          createdAt: h.createdAt,
+        })),
+        comments: comments.map(c => ({
+          body: c.body,
+          anchorText: c.anchorText,
+          resolved: c.resolved,
+          createdAt: c.createdAt,
+        })),
+        summaries: summaries.map(s => ({
+          summaryText: s.summaryText,
+          modelUsed: s.modelUsed,
+          status: s.status,
+          createdAt: s.createdAt,
+        })),
+        attachments: attachments.map(a => ({
+          fileUrl: a.fileUrl,
+          fileType: a.fileType,
+          sizeBytes: a.sizeBytes,
+          createdAt: a.createdAt,
+        })),
+        onboarding: onboarding ? {
+          ...onboarding,
+          interests: JSON.parse(onboarding.interests),
+        } : null,
+        settings: settings,
+      },
+    }
+
+    return NextResponse.json(gdprPayload, {
+      headers: {
+        'Content-Disposition': `attachment; filename="recall-gdpr-export-${new Date().toISOString().slice(0, 10)}.json"`,
+      },
+    })
+  }
+
   // JSON export
   const payload = {
     exportedAt: new Date().toISOString(),

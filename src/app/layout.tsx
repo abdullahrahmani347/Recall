@@ -60,6 +60,12 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+// Font preconnect for faster font loading
+export const fonts = [
+  { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+  { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
+]
+
 export default function RootLayout({
   children,
 }: Readonly<{

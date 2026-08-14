@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '@/stores/app-store'
 import { useAuth } from '@/hooks/use-auth'
@@ -16,25 +17,27 @@ import { CardEditor } from '@/components/app/card-editor'
 import { ReviewSession } from '@/components/app/review-session'
 import { SearchView } from '@/components/app/search-view'
 import { SettingsView } from '@/components/app/settings-view'
-import { AnalyticsView } from '@/components/app/analytics-view'
 import { ReminderBanner } from '@/components/app/reminder-banner'
 import { OnboardingFlow } from '@/components/app/onboarding-flow'
 import { ViewTransition } from '@/components/app/view-transition'
 import { CommandPalette } from '@/components/app/command-palette'
 import { QuickCapture } from '@/components/app/quick-capture'
-import { GraphView } from '@/components/app/graph-view'
-import { ArticlesView } from '@/components/app/articles-view'
-import { ArticleReader } from '@/components/app/article-reader'
 import { useKeyboardShortcuts, ShortcutsHelpModal } from '@/hooks/use-keyboard-shortcuts'
 import { TemplatePicker } from '@/components/app/template-picker'
 import { CustomStudyPicker } from '@/components/app/custom-study-picker'
-import { OcrNoteCreator } from '@/components/app/ocr-note-creator'
-import { ConceptMap } from '@/components/app/concept-map'
-import { AdaptiveDifficulty } from '@/components/app/adaptive-difficulty'
 import { ErrorBoundary } from '@/components/providers/error-boundary'
 import { PwaInstallPrompt } from '@/components/app/pwa-install-prompt'
-import { PrivacyDashboard } from '@/components/app/privacy-dashboard'
 import { Loader2 } from 'lucide-react'
+
+// Lazy load heavy, rarely-used views to reduce initial bundle
+const AnalyticsView = dynamic(() => import('@/components/app/analytics-view').then(m => ({ default: m.AnalyticsView })), { loading: () => <Loader2 className="h-6 w-6 animate-spin text-accent-brand" /> })
+const GraphView = dynamic(() => import('@/components/app/graph-view').then(m => ({ default: m.GraphView })), { loading: () => <Loader2 className="h-6 w-6 animate-spin text-accent-brand" /> })
+const ArticlesView = dynamic(() => import('@/components/app/articles-view').then(m => ({ default: m.ArticlesView })), { loading: () => <Loader2 className="h-6 w-6 animate-spin text-accent-brand" /> })
+const ArticleReader = dynamic(() => import('@/components/app/article-reader').then(m => ({ default: m.ArticleReader })), { loading: () => <Loader2 className="h-6 w-6 animate-spin text-accent-brand" /> })
+const OcrNoteCreator = dynamic(() => import('@/components/app/ocr-note-creator').then(m => ({ default: m.OcrNoteCreator })), { ssr: false })
+const ConceptMap = dynamic(() => import('@/components/app/concept-map').then(m => ({ default: m.ConceptMap })), { ssr: false })
+const AdaptiveDifficulty = dynamic(() => import('@/components/app/adaptive-difficulty').then(m => ({ default: m.AdaptiveDifficulty })), { ssr: false })
+const PrivacyDashboard = dynamic(() => import('@/components/app/privacy-dashboard').then(m => ({ default: m.PrivacyDashboard })), { ssr: false })
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)

@@ -76,13 +76,16 @@ export function SettingsView() {
     }
   }
 
-  const onExport = async (format: 'markdown' | 'json') => {
+  const onExport = async (format: 'markdown' | 'json' | 'csv' | 'apkg' | 'gdpr') => {
     try {
       const blob = await apiDownload(`/api/export?format=${format}`)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `recall-export.${format === 'markdown' ? 'md' : 'json'}`
+      const ext = format === 'markdown' ? 'md' : format === 'csv' ? 'csv' : format === 'apkg' ? 'apkg' : 'json'
+      a.download = format === 'gdpr'
+        ? `recall-gdpr-export-${new Date().toISOString().slice(0, 10)}.json`
+        : `recall-export.${ext}`
       a.click()
       URL.revokeObjectURL(url)
       toast.success('Export downloaded')
@@ -385,12 +388,30 @@ export function SettingsView() {
               </Button>
               <Button
                 variant="ghost"
+                onClick={() => onExport('csv')}
+                className="border border-hairline bg-void"
+                size="sm"
+              >
+                <Download className="mr-1 h-3.5 w-3.5" />
+                CSV
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => onExport('apkg')}
                 className="border border-hairline bg-void"
                 size="sm"
               >
                 <Package className="mr-1 h-3.5 w-3.5" />
                 Anki (.apkg)
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => onExport('gdpr')}
+                className="border border-accent-brand/30 bg-accent-brand-dim text-accent-brand"
+                size="sm"
+              >
+                <Shield className="mr-1 h-3.5 w-3.5" />
+                GDPR Data Download
               </Button>
             </div>
           </div>
