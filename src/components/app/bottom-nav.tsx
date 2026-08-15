@@ -29,6 +29,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Primary"
+      data-tour="bottom-nav"
       className="sticky bottom-0 z-30 border-t border-hairline glass"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >

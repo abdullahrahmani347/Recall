@@ -86,7 +86,7 @@ export function HomeView() {
       </header>
 
       {/* DUE CARDS HERO */}
-      <Card
+      <Card data-tour="home-header"
         className="mb-5 overflow-hidden border-hairline bg-card-surface p-5 animate-fade-in-up stagger-1 card-lift sm:p-6"
         role="region"
         aria-label="Due cards"
@@ -118,6 +118,7 @@ export function HomeView() {
           </div>
           <div className="flex flex-col items-end gap-3">
             <div
+              data-tour="streak"
               className="flex items-center gap-1.5 rounded-full border border-accent-warm/20 bg-accent-warm/10 px-3 py-1.5 text-sm text-accent-warm"
               title="Current review streak"
             >
@@ -129,6 +130,7 @@ export function HomeView() {
               disabled={dueCount === 0}
               onClick={() => startReview(null)}
               size="sm"
+              data-tour="start-review"
               className="bg-accent-brand text-void hover:bg-accent-brand/90 press"
             >
               Start review
@@ -144,7 +146,7 @@ export function HomeView() {
       </Card>
 
       {/* QUICK ACTIONS */}
-      <div className="mb-8 grid grid-cols-2 gap-3 animate-fade-in-up stagger-2">
+      <div data-tour="quick-actions ai-features" className="mb-8 grid grid-cols-2 gap-3 animate-fade-in-up stagger-2">
         <button
           onClick={onCreateNote}
           className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card-surface p-4 text-left card-lift press"
