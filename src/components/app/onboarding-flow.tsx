@@ -125,6 +125,8 @@ export function OnboardingFlow() {
       qc.setQueryData(['onboarding'], { onboarding: res.onboarding })
       qc.invalidateQueries({ queryKey: ['onboarding-check'] })
       qc.invalidateQueries({ queryKey: ['auth'] })
+      // Flag that onboarding just completed — triggers the guided tour
+      sessionStorage.setItem('onboarding-just-completed', 'true')
       toast.success('Welcome to Recall!')
       setView('home')
     } catch (err) {
@@ -141,6 +143,8 @@ export function OnboardingFlow() {
       qc.setQueryData(['onboarding'], { onboarding: res.onboarding })
       qc.invalidateQueries({ queryKey: ['onboarding-check'] })
       qc.invalidateQueries({ queryKey: ['auth'] })
+      // Flag that onboarding just completed — triggers the guided tour
+      sessionStorage.setItem('onboarding-just-completed', 'true')
     } catch (err) {
       // If the save fails, show an error but still let the user into the app
       // — they can complete onboarding later from Settings.

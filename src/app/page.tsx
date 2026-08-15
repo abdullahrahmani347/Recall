@@ -38,6 +38,7 @@ const OcrNoteCreator = dynamic(() => import('@/components/app/ocr-note-creator')
 const ConceptMap = dynamic(() => import('@/components/app/concept-map').then(m => ({ default: m.ConceptMap })), { ssr: false })
 const AdaptiveDifficulty = dynamic(() => import('@/components/app/adaptive-difficulty').then(m => ({ default: m.AdaptiveDifficulty })), { ssr: false })
 const PrivacyDashboard = dynamic(() => import('@/components/app/privacy-dashboard').then(m => ({ default: m.PrivacyDashboard })), { ssr: false })
+const GuidedTour = dynamic(() => import('@/components/app/guided-tour').then(m => ({ default: m.GuidedTour })), { ssr: false })
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
@@ -47,6 +48,7 @@ export default function Home() {
   const [showConceptMap, setShowConceptMap] = useState(false)
   const [showAdaptiveDifficulty, setShowAdaptiveDifficulty] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const [showTour, setShowTour] = useState(false)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -93,6 +95,32 @@ export default function Home() {
     window.addEventListener('recall-privacy', onPrivacy)
     return () => window.removeEventListener('recall-privacy', onPrivacy)
   }, [])
+
+  useEffect(() => {
+    const onTour = () => setShowTour(true)
+    window.addEventListener('recall-start-tour', onTour)
+    // Auto-start tour for new users who haven't completed it
+    const tourCompleted = localStorage.getItem('guided-tour-completed')
+    if (!tourCompleted) {
+      // Check if user just finished onboarding
+      const onboardingJustCompleted = sessionStorage.getItem('onboarding-just-completed')
+      if (onboardingJustCompleted === 'true') {
+        sessionStorage.removeItem('onboarding-just-completed')
+        setTimeout(() => setShowTour(true), 500)
+      }
+    }
+    return () => window.removeEventListener('recall-start-tour', onTour)
+  }, [])
+
+  // Listen for navigation events from the guided tour
+  useEffect(() => {
+    const onNavigate = (e: Event) => {
+      const view = (e as CustomEvent).detail as string
+      setView(view as any)
+    }
+    window.addEventListener('recall-navigate', onNavigate as EventListener)
+    return () => window.removeEventListener('recall-navigate', onNavigate as EventListener)
+  }, [setView])
 
   const { data: onboardingData, isLoading: onboardingLoading } = useQuery({
     queryKey: ['onboarding-check', user?.id],
@@ -191,6 +219,7 @@ export default function Home() {
       {showAdaptiveDifficulty && <AdaptiveDifficulty onClose={() => setShowAdaptiveDifficulty(false)} />}
       {showPrivacy && <PrivacyDashboard onClose={() => setShowPrivacy(false)} />}
       <PwaInstallPrompt />
+      {showTour && <GuidedTour onClose={() => setShowTour(false)} />}
     </div>
   )
 }

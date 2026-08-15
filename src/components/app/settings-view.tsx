@@ -133,7 +133,7 @@ export function SettingsView() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-8 pt-6 sm:px-6 sm:pt-8">
+    <div data-tour="settings" className="mx-auto max-w-3xl px-4 pb-8 pt-6 sm:px-6 sm:pt-8">
       <header className="mb-6 animate-fade-in-up">
         <p className="text-xs font-medium uppercase tracking-widest text-muted-recall">Account</p>
         <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight sm:text-3xl">Settings</h1>
@@ -487,6 +487,15 @@ export function SettingsView() {
           >
             <RotateCw className="mr-1 h-3.5 w-3.5" />
             Retake onboarding
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => window.dispatchEvent(new CustomEvent('recall-start-tour'))}
+            className="border border-hairline bg-void text-secondary-recall hover:text-primary-recall"
+            size="sm"
+          >
+            <RotateCw className="mr-1 h-3.5 w-3.5" />
+            Retake tour
           </Button>
           <Button
             variant="ghost"

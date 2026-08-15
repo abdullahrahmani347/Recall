@@ -155,6 +155,7 @@ export function NotesView() {
           )}
           <Button
             onClick={() => openNote(null)}
+            data-tour="notes-create"
             className="bg-accent-brand text-void hover:bg-accent-brand/90 press shadow-glow-brand"
           >
             <Plus className="mr-1.5 h-4 w-4" />
