@@ -35,19 +35,18 @@ export function BottomNav() {
       className="sticky bottom-0 z-30 border-t border-hairline glass"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <ul className="mx-auto flex max-w-2xl items-stretch justify-around">
+      <ul className="mx-auto flex max-w-2xl items-stretch justify-around overflow-x-auto scrollbar-thin">
         {NAV.map((item) => {
           const Icon = item.icon
           const active = view === item.view
           return (
-            <li key={item.view} className="flex-1">
+            <li key={item.view} className="flex-1 min-w-[44px]">
               <button
                 onClick={() => setView(item.view)}
                 aria-current={active ? 'page' : undefined}
                 aria-label={item.label}
-                aria-keyshortcuts={item.view === 'home' ? 'g h' : item.view === 'notes' ? 'g n' : item.view === 'search' ? 'g s' : undefined}
                 className={cn(
-                  'relative flex w-full flex-col items-center gap-0.5 px-1 py-2.5 text-[10px] font-medium transition-smooth focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brand sm:gap-1 sm:px-2 sm:py-3 sm:text-[11px]',
+                  'relative flex w-full flex-col items-center gap-0.5 px-0.5 py-2 text-[9px] font-medium transition-smooth focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brand sm:gap-1 sm:px-1.5 sm:py-2.5 sm:text-[10px]',
                   active
                     ? 'text-accent-brand'
                     : 'text-muted-recall hover:text-primary-recall'
@@ -61,7 +60,7 @@ export function BottomNav() {
                   />
                 )}
                 <Icon
-                  size={22}
+                  size={20}
                   animated={active ? true : undefined}
                   className={cn('transition-smooth', active && 'scale-110')}
                 />
