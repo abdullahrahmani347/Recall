@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
 import { ReviewHeatmap } from '@/components/app/review-heatmap'
 import { Achievements } from '@/components/app/achievements'
+import { AdvancedAnalytics } from '@/components/app/advanced-analytics'
 import { useAppStore } from '@/stores/app-store'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -390,6 +391,9 @@ export function AnalyticsView() {
           </Button>
         </Card>
       )}
+
+      {/* ADVANCED ANALYTICS */}
+      <AdvancedAnalytics />
     </div>
   )
 }
