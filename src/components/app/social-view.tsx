@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { Search, UserPlus, Check, X, Trophy, Users, Package, DoorOpen, Loader2, Star, Download, Crown } from 'lucide-react'
+import { Search, UserPlus, Check, X, Trophy, Users, Package, DoorOpen, Loader2, Star, Download, Crown, Plus } from 'lucide-react'
 import { useAppStore } from '@/stores/app-store'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -389,6 +389,11 @@ function MarketplaceTab() {
 }
 
 function RoomsTab() {
+  const qc = useQueryClient()
+  const [showCreate, setShowCreate] = useState(false)
+  const [roomName, setRoomName] = useState('')
+  const [roomDesc, setRoomDesc] = useState('')
+
   const { data } = useQuery<{ rooms: StudyRoom[] }>({
     queryKey: ['study-rooms'],
     queryFn: () => api('/api/study-rooms'),
@@ -400,9 +405,71 @@ function RoomsTab() {
     onError: (e) => toast.error(e instanceof Error ? e.message : 'Failed to join'),
   })
 
+  const createMutation = useMutation({
+    mutationFn: (body: { name: string; description?: string }) =>
+      api('/api/study-rooms', { method: 'POST', body: JSON.stringify(body) }),
+    onSuccess: () => {
+      toast.success('Study room created!')
+      setShowCreate(false)
+      setRoomName('')
+      setRoomDesc('')
+      qc.invalidateQueries({ queryKey: ['study-rooms'] })
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : 'Failed to create'),
+  })
+
   return (
     <div className="space-y-4">
-      {data?.rooms.length === 0 && (
+      {/* Create Room Button */}
+      {!showCreate && (
+        <Button
+          onClick={() => setShowCreate(true)}
+          className="w-full bg-accent-brand text-void hover:bg-accent-brand/90"
+        >
+          <Plus className="mr-1 h-4 w-4" />
+          Create Study Room
+        </Button>
+      )}
+
+      {/* Create Room Form */}
+      {showCreate && (
+        <Card className="border-accent-brand/30 bg-card-surface p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-primary-recall">Create a Study Room</h3>
+          <div>
+            <label className="mb-1 block text-xs text-muted-recall">Room name</label>
+            <Input
+              value={roomName}
+              onChange={(e) => setRoomName(e.target.value)}
+              placeholder="e.g. Biology 101 Study Group"
+              className="bg-void"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-muted-recall">Description (optional)</label>
+            <Input
+              value={roomDesc}
+              onChange={(e) => setRoomDesc(e.target.value)}
+              placeholder="What will you be studying?"
+              className="bg-void"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowCreate(false)} variant="ghost" size="sm" className="border border-hairline">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => createMutation.mutate({ name: roomName, description: roomDesc })}
+              disabled={!roomName.trim() || createMutation.isPending}
+              className="bg-accent-brand text-void hover:bg-accent-brand/90"
+              size="sm"
+            >
+              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Room'}
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {data?.rooms.length === 0 && !showCreate && (
         <Card className="border-dashed border-hairline bg-card-surface/50 p-8 text-center">
           <DoorOpen className="mx-auto mb-3 h-8 w-8 text-muted-recall" />
           <p className="text-sm text-muted-recall">No active study rooms. Create one to study together!</p>
