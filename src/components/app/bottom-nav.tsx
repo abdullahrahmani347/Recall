@@ -10,6 +10,7 @@ import {
   SettingsIcon,
   GraphIcon,
 } from '@/components/icons/recall-icons'
+import { Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const NAV = [
@@ -18,6 +19,7 @@ const NAV = [
   { view: 'graph', label: 'Graph', icon: GraphIcon },
   { view: 'decks', label: 'Decks', icon: LayersIcon },
   { view: 'search', label: 'Search', icon: SearchIcon },
+  { view: 'social', label: 'Social', icon: Users },
   { view: 'analytics', label: 'Stats', icon: ChartIcon },
   { view: 'settings', label: 'Settings', icon: SettingsIcon },
 ] as const

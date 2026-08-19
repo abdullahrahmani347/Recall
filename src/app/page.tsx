@@ -39,6 +39,7 @@ const ConceptMap = dynamic(() => import('@/components/app/concept-map').then(m =
 const AdaptiveDifficulty = dynamic(() => import('@/components/app/adaptive-difficulty').then(m => ({ default: m.AdaptiveDifficulty })), { ssr: false })
 const PrivacyDashboard = dynamic(() => import('@/components/app/privacy-dashboard').then(m => ({ default: m.PrivacyDashboard })), { ssr: false })
 const GuidedTour = dynamic(() => import('@/components/app/guided-tour').then(m => ({ default: m.GuidedTour })), { ssr: false })
+const SocialView = dynamic(() => import('@/components/app/social-view').then(m => ({ default: m.SocialView })), { loading: () => <Loader2 className="h-6 w-6 animate-spin text-accent-brand" /> })
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
@@ -190,6 +191,7 @@ export default function Home() {
           {view === 'search' && <SearchView />}
           {view === 'analytics' && <AnalyticsView />}
           {view === 'settings' && <SettingsView />}
+          {view === 'social' && <SocialView />}
         </ViewTransition>
         </ErrorBoundary>
       </main>

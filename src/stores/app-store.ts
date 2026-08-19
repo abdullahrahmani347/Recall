@@ -31,6 +31,7 @@ type View =
   | 'graph'
   | 'articles'
   | 'article-reader'
+  | 'social'
 
 interface AppState {
   user: ApiUser | null
